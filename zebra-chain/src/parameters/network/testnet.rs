@@ -192,7 +192,7 @@ impl From<&BTreeMap<Height, NetworkUpgrade>> for ConfiguredActivationHeights {
                 NetworkUpgrade::Nu7 => &mut configured_activation_heights.nu7,
                 #[cfg(zcash_unstable = "zfuture")]
                 NetworkUpgrade::ZFuture => &mut configured_activation_heights.zfuture,
-                NetworkUpgrade::Genesis => continue,
+                NetworkUpgrade::Genesis | NetworkUpgrade::Ycash => continue,
             };
 
             *field = Some(height.0)

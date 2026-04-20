@@ -774,7 +774,7 @@ impl Arbitrary for Transaction {
                 Self::v1_strategy(ledger_state)
             }
             NetworkUpgrade::Overwinter => Self::v2_strategy(ledger_state),
-            NetworkUpgrade::Sapling => Self::v3_strategy(ledger_state),
+            NetworkUpgrade::Sapling | NetworkUpgrade::Ycash => Self::v3_strategy(ledger_state),
             NetworkUpgrade::Blossom | NetworkUpgrade::Heartwood | NetworkUpgrade::Canopy => {
                 Self::v4_strategy(ledger_state)
             }

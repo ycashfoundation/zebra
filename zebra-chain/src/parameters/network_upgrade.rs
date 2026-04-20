@@ -43,6 +43,11 @@ pub enum NetworkUpgrade {
     Overwinter,
     /// The Zcash protocol after the Sapling upgrade.
     Sapling,
+    /// The Ycash chain-fork network upgrade.
+    ///
+    /// Active only on Ycash networks (mainnet height 570000, testnet 510248).
+    /// On Zcash networks this variant has no activation height.
+    Ycash,
     /// The Zcash protocol after the Blossom upgrade.
     Blossom,
     /// The Zcash protocol after the Heartwood upgrade.
@@ -394,7 +399,9 @@ impl NetworkUpgrade {
     /// [`POST_BLOSSOM_POW_TARGET_SPACING`] from the Zcash specification.
     pub fn target_spacing(&self) -> Duration {
         let spacing_seconds = match self {
-            Genesis | BeforeOverwinter | Overwinter | Sapling => PRE_BLOSSOM_POW_TARGET_SPACING,
+            Genesis | BeforeOverwinter | Overwinter | Sapling | Ycash => {
+                PRE_BLOSSOM_POW_TARGET_SPACING
+            }
             Blossom | Heartwood | Canopy | Nu5 | Nu6 | Nu6_1 | Nu7 => {
                 POST_BLOSSOM_POW_TARGET_SPACING.into()
             }
@@ -514,6 +521,7 @@ impl From<zcash_protocol::consensus::NetworkUpgrade> for NetworkUpgrade {
         match nu {
             zcash_protocol::consensus::NetworkUpgrade::Overwinter => Self::Overwinter,
             zcash_protocol::consensus::NetworkUpgrade::Sapling => Self::Sapling,
+            zcash_protocol::consensus::NetworkUpgrade::Ycash => Self::Ycash,
             zcash_protocol::consensus::NetworkUpgrade::Blossom => Self::Blossom,
             zcash_protocol::consensus::NetworkUpgrade::Heartwood => Self::Heartwood,
             zcash_protocol::consensus::NetworkUpgrade::Canopy => Self::Canopy,

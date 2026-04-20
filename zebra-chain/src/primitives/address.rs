@@ -187,6 +187,11 @@ impl From<NetworkType> for NetworkKind {
             NetworkType::Main => NetworkKind::Mainnet,
             NetworkType::Test => NetworkKind::Testnet,
             NetworkType::Regtest => NetworkKind::Regtest,
+            // Ycash networks do not yet have dedicated NetworkKind variants; we collapse
+            // them onto Mainnet/Testnet so non-Ycash-aware address code keeps working.
+            // This will be revisited when Zebra's Network/NetworkKind gain Ycash variants.
+            NetworkType::YcashMain => NetworkKind::Mainnet,
+            NetworkType::YcashTest => NetworkKind::Testnet,
         }
     }
 }
