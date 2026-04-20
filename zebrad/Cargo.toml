@@ -22,9 +22,9 @@ rust-version = "1.89"
 
 # Settings that impact runtime behaviour
 
-# make `cargo run` use `zebrad` by default
+# make `cargo run` use `yolkd` by default
 # when run in the workspace directory
-default-run = "zebrad"
+default-run = "yolkd"
 
 # `cargo release` settings
 [package.metadata.release]

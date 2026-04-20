@@ -30,15 +30,15 @@ edition = "2021"
 
 [workspace.dependencies]
 incrementalmerkletree = { version = "0.8.2", features = ["legacy-api"] }
-orchard = "0.11"
-sapling-crypto = "0.5"
+orchard = "0.12"
+sapling-crypto = "0.6"
 zcash_address = "0.10"
 zcash_encoding = "0.3"
 zcash_history = "0.4"
 zcash_keys = "0.12"
 zcash_primitives = "0.26"
 zcash_proofs = "0.26"
-zcash_transparent = "0.6.4"
+zcash_transparent = "0.6"
 zcash_protocol = "0.7"
 zip32 = "0.2"
 abscissa_core = "0.7"
@@ -177,6 +177,20 @@ which = "8.0.0"
 
 # We always do releases from the main branch
 allow-branch = ["main"]
+
+# Redirect the librustzcash crates to YcashFoundation's fork (branch: feat/ycash).
+# Uses a local path so we can iterate on both trees together. Anyone building
+# this repo must have `librustzcash-ycash` checked out as a sibling directory.
+[patch.crates-io]
+equihash          = { path = "../librustzcash-ycash/components/equihash" }
+zcash_address     = { path = "../librustzcash-ycash/components/zcash_address" }
+zcash_encoding    = { path = "../librustzcash-ycash/components/zcash_encoding" }
+zcash_history     = { path = "../librustzcash-ycash/zcash_history" }
+zcash_keys        = { path = "../librustzcash-ycash/zcash_keys" }
+zcash_primitives  = { path = "../librustzcash-ycash/zcash_primitives" }
+zcash_proofs     = { path = "../librustzcash-ycash/zcash_proofs" }
+zcash_protocol    = { path = "../librustzcash-ycash/components/zcash_protocol" }
+zcash_transparent = { path = "../librustzcash-ycash/zcash_transparent" }
 
 # Compilation settings
 
