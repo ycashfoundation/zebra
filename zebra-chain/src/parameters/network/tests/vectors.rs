@@ -18,25 +18,22 @@ use crate::{
 };
 
 /// Checks that every method in the `Parameters` impl for `zebra_chain::Network` has the same output
-/// as the Parameters impl for `zcash_protocol::consensus::NetworkType` on Mainnet and the default Testnet.
+/// as the Ycash-specific reference `Parameters` impls from librustzcash-ycash
+/// (`YcashMainNetwork`/`YcashTestNetwork`) on Ycash Mainnet and the default Testnet.
 #[test]
 fn check_parameters_impl() {
-    let zp_network_upgrades = [
-        zp_consensus::NetworkUpgrade::Overwinter,
-        zp_consensus::NetworkUpgrade::Sapling,
-        zp_consensus::NetworkUpgrade::Blossom,
-        zp_consensus::NetworkUpgrade::Heartwood,
-        zp_consensus::NetworkUpgrade::Canopy,
-        zp_consensus::NetworkUpgrade::Nu5,
-    ];
+    // Ycash activates through Canopy and never activates NU5+, so the comparison
+    // only covers upgrades that are present on both sides.
+    fn check_against_reference<P: Parameters>(network: Network, zp_network: P) {
+        let zp_network_upgrades = [
+            zp_consensus::NetworkUpgrade::Overwinter,
+            zp_consensus::NetworkUpgrade::Sapling,
+            zp_consensus::NetworkUpgrade::Ycash,
+            zp_consensus::NetworkUpgrade::Blossom,
+            zp_consensus::NetworkUpgrade::Heartwood,
+            zp_consensus::NetworkUpgrade::Canopy,
+        ];
 
-    for (network, zp_network) in [
-        (Network::Mainnet, zp_consensus::Network::MainNetwork),
-        (
-            Network::new_default_testnet(),
-            zp_consensus::Network::TestNetwork,
-        ),
-    ] {
         for nu in zp_network_upgrades {
             let activation_height = network
                 .activation_height(nu)
@@ -95,6 +92,12 @@ fn check_parameters_impl() {
             "Parameters::b58_script_address_prefix() outputs must match"
         );
     }
+
+    check_against_reference(Network::Mainnet, zp_consensus::YCASH_MAIN_NETWORK);
+    check_against_reference(
+        Network::new_default_testnet(),
+        zp_consensus::YCASH_TEST_NETWORK,
+    );
 }
 
 /// Checks that `NetworkUpgrade::activation_height()` returns the activation height of the next
