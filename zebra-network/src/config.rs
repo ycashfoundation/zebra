@@ -545,10 +545,19 @@ impl Config {
 
 impl Default for Config {
     fn default() -> Config {
-        let mainnet_peers = ["seed.ycash.xyz:8833"]
-            .iter()
-            .map(|&s| String::from(s))
-            .collect();
+        // `seed.ycash.xyz` has no DNS record anymore (verified 2026-04-21 against
+        // Google 8.8.8.8 and Cloudflare 1.1.1.1 — both SERVFAIL). Keep it as the
+        // first entry so a future DNS restoration is picked up automatically,
+        // but lead with the two known-reachable ycashd instances so a node can
+        // bootstrap today.
+        let mainnet_peers = [
+            "explorer.ycash.xyz:8833",
+            "lite.ycash.xyz:8833",
+            "seed.ycash.xyz:8833",
+        ]
+        .iter()
+        .map(|&s| String::from(s))
+        .collect();
 
         let testnet_peers = ["testseed.ycash.xyz:18833"]
             .iter()
