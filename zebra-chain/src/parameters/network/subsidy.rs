@@ -24,7 +24,7 @@ use crate::{
 };
 
 use constants::{
-    regtest, testnet, BLOSSOM_POW_TARGET_SPACING_RATIO, FUNDING_STREAM_RECEIVER_DENOMINATOR,
+    regtest, BLOSSOM_POW_TARGET_SPACING_RATIO, FUNDING_STREAM_RECEIVER_DENOMINATOR,
     FUNDING_STREAM_SPECIFICATION, LOCKBOX_SPECIFICATION, MAX_BLOCK_SUBSIDY,
     POST_BLOSSOM_HALVING_INTERVAL, PRE_BLOSSOM_HALVING_INTERVAL,
 };
@@ -237,22 +237,17 @@ pub trait ParameterSubsidy {
 /// Network methods related to Block Subsidy and Funding Streams
 impl ParameterSubsidy for Network {
     fn height_for_first_halving(&self) -> Height {
-        // First halving on Mainnet is at Canopy
-        // while in Testnet is at block constant height of `1_116_000`
-        // <https://zips.z.cash/protocol/protocol.pdf#zip214fundingstreams>
+        // Compute the first halving height from the halving formula on all networks
+        // except Regtest (which pins a fixed small value for test convenience).
+        //
+        // Upstream Zebra hardcoded Mainnet → Canopy activation and default Testnet →
+        // `testnet::FIRST_HALVING`; both are Zcash-specific coincidences of Zcash's
+        // activation schedule where Blossom precedes the first halving. On Ycash
+        // mainnet the first halving (850_000) is pre-Blossom, so neither hardcode is
+        // correct here.
         match self {
-            Network::Mainnet => NetworkUpgrade::Canopy
-                .activation_height(self)
-                .expect("canopy activation height should be available"),
-            Network::Testnet(params) => {
-                if params.is_regtest() {
-                    regtest::FIRST_HALVING
-                } else if params.is_default_testnet() {
-                    testnet::FIRST_HALVING
-                } else {
-                    height_for_halving(1, self).expect("first halving height should be available")
-                }
-            }
+            Network::Testnet(params) if params.is_regtest() => regtest::FIRST_HALVING,
+            _ => height_for_halving(1, self).expect("first halving height should be available"),
         }
     }
 
@@ -301,7 +296,14 @@ pub fn funding_stream_address_period<N: ParameterSubsidy>(height: Height, networ
 
 /// The first block height of the halving at the provided halving index for a network.
 ///
-/// See `Halving(height)`, as described in [protocol specification §7.8][7.8]
+/// See `HalvingHeight(height, halvingIndex)` as described in ZIP-208 and
+/// [protocol specification §7.8][7.8].
+///
+/// Uses the pre-Blossom branch when the halving index's pre-Blossom candidate
+/// height precedes Blossom activation (as on Ycash mainnet, where the first
+/// halving at 850_000 precedes Blossom at 1_100_000), and the post-Blossom
+/// branch otherwise. On Zcash-style networks where Blossom precedes the first
+/// halving, every halving falls under the post-Blossom branch.
 ///
 /// [7.8]: https://zips.z.cash/protocol/protocol.pdf#subsidies
 pub fn height_for_halving(halving: u32, network: &Network) -> Option<Height> {
@@ -312,20 +314,30 @@ pub fn height_for_halving(halving: u32, network: &Network) -> Option<Height> {
     let slow_start_shift = i64::from(network.slow_start_shift().0);
     let blossom_height = i64::from(NetworkUpgrade::Blossom.activation_height(network)?.0);
     let pre_blossom_halving_interval = network.pre_blossom_halving_interval();
+    let post_blossom_halving_interval = network.post_blossom_halving_interval();
     let halving_index = i64::from(halving);
 
-    let unscaled_height = halving_index.checked_mul(pre_blossom_halving_interval)?;
-
-    let pre_blossom_height = unscaled_height
-        .min(blossom_height)
+    // ZIP-208 HalvingHeight pre-Blossom branch:
+    //   height = preInterval * halvingIndex + slowStartShift
+    let pre_blossom_candidate_height = halving_index
+        .checked_mul(pre_blossom_halving_interval)?
         .checked_add(slow_start_shift)?;
 
-    let post_blossom_height = 0
-        .max(unscaled_height - blossom_height)
-        .checked_mul(i64::from(BLOSSOM_POW_TARGET_SPACING_RATIO))?
-        .checked_add(slow_start_shift)?;
+    let height = if pre_blossom_candidate_height < blossom_height {
+        pre_blossom_candidate_height
+    } else {
+        // ZIP-208 HalvingHeight post-Blossom branch:
+        //   height = postInterval * halvingIndex
+        //          - BLOSSOM_POW_TARGET_SPACING_RATIO * (blossomHeight - slowStartShift)
+        //          + blossomHeight
+        let ratio_times_blossom_gap = i64::from(BLOSSOM_POW_TARGET_SPACING_RATIO)
+            .checked_mul(blossom_height.checked_sub(slow_start_shift)?)?;
 
-    let height = pre_blossom_height.checked_add(post_blossom_height)?;
+        halving_index
+            .checked_mul(post_blossom_halving_interval)?
+            .checked_sub(ratio_times_blossom_gap)?
+            .checked_add(blossom_height)?
+    };
 
     let height = u32::try_from(height).ok()?;
     height.try_into().ok()

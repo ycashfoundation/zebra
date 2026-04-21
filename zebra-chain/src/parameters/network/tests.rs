@@ -29,18 +29,12 @@ fn halving_test() -> Result<(), Report> {
 }
 
 fn halving_for_network(network: &Network) -> Result<(), Report> {
-    let blossom_height = NetworkUpgrade::Blossom.activation_height(network).unwrap();
     let first_halving_height = network.height_for_first_halving();
 
     assert_eq!(
         1,
         halving_divisor((network.slow_start_interval() + 1).unwrap(), network).unwrap()
     );
-    assert_eq!(
-        1,
-        halving_divisor((blossom_height - 1).unwrap(), network).unwrap()
-    );
-    assert_eq!(1, halving_divisor(blossom_height, network).unwrap());
     assert_eq!(
         1,
         halving_divisor((first_halving_height - 1).unwrap(), network).unwrap()
@@ -156,31 +150,41 @@ fn block_subsidy_test() -> Result<(), Report> {
 }
 
 fn block_subsidy_for_network(network: &Network) -> Result<(), Report> {
-    let blossom_height = NetworkUpgrade::Blossom.activation_height(network).unwrap();
     let first_halving_height = network.height_for_first_halving();
+    let blossom_active_at_first_halving =
+        NetworkUpgrade::current(network, first_halving_height) >= NetworkUpgrade::Blossom;
 
-    // After slow-start mining and before Blossom the block subsidy is 12.5 ZEC
+    // After slow-start mining the block subsidy is 12.5 ZEC (pre-Blossom base,
+    // no halving applied).
     // https://z.cash/support/faq/#what-is-slow-start-mining
     assert_eq!(
         Amount::<NonNegative>::try_from(1_250_000_000)?,
         block_subsidy((network.slow_start_interval() + 1).unwrap(), network)?
     );
+
+    // Just before the first halving the base subsidy is whatever Blossom gave
+    // us: MAX (12.5 ZEC) if Blossom is not yet active, MAX/2 (6.25 ZEC) if it
+    // is. On Ycash mainnet the first halving precedes Blossom; on Zcash and
+    // Ycash testnet Blossom precedes the first halving.
+    let expected_just_before_first_halving = if blossom_active_at_first_halving {
+        Amount::<NonNegative>::try_from(625_000_000)?
+    } else {
+        Amount::<NonNegative>::try_from(1_250_000_000)?
+    };
     assert_eq!(
-        Amount::<NonNegative>::try_from(1_250_000_000)?,
-        block_subsidy((blossom_height - 1).unwrap(), network)?
+        expected_just_before_first_halving,
+        block_subsidy((first_halving_height - 1).unwrap(), network)?
     );
 
-    // After Blossom the block subsidy is reduced to 6.25 ZEC without halving
-    // https://z.cash/upgrade/blossom/
+    // At the 1st halving the subsidy is halved relative to the just-before
+    // value above.
+    let expected_at_first_halving = if blossom_active_at_first_halving {
+        Amount::<NonNegative>::try_from(312_500_000)?
+    } else {
+        Amount::<NonNegative>::try_from(625_000_000)?
+    };
     assert_eq!(
-        Amount::<NonNegative>::try_from(625_000_000)?,
-        block_subsidy(blossom_height, network)?
-    );
-
-    // After the 1st halving, the block subsidy is reduced to 3.125 ZEC
-    // https://z.cash/upgrade/canopy/
-    assert_eq!(
-        Amount::<NonNegative>::try_from(312_500_000)?,
+        expected_at_first_halving,
         block_subsidy(first_halving_height, network)?
     );
 
