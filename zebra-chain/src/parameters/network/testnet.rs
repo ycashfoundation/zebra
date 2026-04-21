@@ -71,41 +71,36 @@ pub struct ConfiguredFundingStreamRecipient {
 impl ConfiguredFundingStreamRecipient {
     /// Creates a new [`ConfiguredFundingStreamRecipient`] with the provided receiver and default
     /// values for other fields.
+    ///
+    /// Ycash has no active funding streams, so there is no natural testnet
+    /// address set for ECC/ZF/MG — we seed the non-`Deferred` receivers with
+    /// the Ycash post-UPGRADE_YCASH testnet founder list as a parseable
+    /// placeholder sized for typical test fixtures. Callers that care about
+    /// specific addresses should override `addresses` directly.
     pub fn new_for(receiver: FundingStreamReceiver) -> Self {
         use FundingStreamReceiver::*;
-        match receiver {
-            Ecc => Self {
-                receiver: Ecc,
-                numerator: 7,
-                addresses: Some(
-                    testnet::FUNDING_STREAM_ECC_ADDRESSES
-                        .map(ToString::to_string)
-                        .to_vec(),
-                ),
-            },
-            ZcashFoundation => Self {
-                receiver: ZcashFoundation,
-                numerator: 5,
-                addresses: Some(
-                    testnet::FUNDING_STREAM_ZF_ADDRESSES
-                        .map(ToString::to_string)
-                        .to_vec(),
-                ),
-            },
-            MajorGrants => Self {
-                receiver: MajorGrants,
-                numerator: 8,
-                addresses: Some(
-                    testnet::FUNDING_STREAM_MG_ADDRESSES
-                        .map(ToString::to_string)
-                        .to_vec(),
-                ),
-            },
-            Deferred => Self {
-                receiver,
-                numerator: 0,
-                addresses: None,
-            },
+        let numerator = match receiver {
+            Ecc => 7,
+            ZcashFoundation => 5,
+            MajorGrants => 8,
+            Deferred => {
+                return Self {
+                    receiver,
+                    numerator: 0,
+                    addresses: None,
+                }
+            }
+        };
+
+        Self {
+            receiver,
+            numerator,
+            addresses: Some(
+                testnet::YCASH_FOUNDER_ADDRESS_LIST
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect(),
+            ),
         }
     }
 
@@ -508,10 +503,10 @@ impl Default for ParametersBuilder {
             pre_blossom_halving_interval: PRE_BLOSSOM_HALVING_INTERVAL,
             post_blossom_halving_interval: POST_BLOSSOM_HALVING_INTERVAL,
             should_allow_unshielded_coinbase_spends: false,
-            lockbox_disbursements: testnet::NU6_1_LOCKBOX_DISBURSEMENTS
-                .iter()
-                .map(|(addr, amount)| (addr.to_string(), *amount))
-                .collect(),
+            // Ycash never activates NU6.1, so the default testnet has no
+            // one-time lockbox disbursements. Custom testnets that configure
+            // NU6.1 can still set this via the builder.
+            lockbox_disbursements: Vec::new(),
             checkpoints: TESTNET_CHECKPOINT_LIST.clone(),
         }
     }
@@ -1212,11 +1207,40 @@ impl Network {
         }
     }
 
-    /// Returns the list of founders' reward addresses for this network.
+    /// Returns the list of pre-UPGRADE_YCASH founders' reward addresses for
+    /// this network.
     pub fn founder_address_list(&self) -> &[&str] {
         match self {
             Network::Mainnet => &mainnet::FOUNDER_ADDRESS_LIST,
             Network::Testnet(_) => &testnet::FOUNDER_ADDRESS_LIST,
+        }
+    }
+
+    /// Returns the list of post-UPGRADE_YCASH founders' reward addresses for
+    /// this network. Cycled modulo the list length during the YDF mandate
+    /// window.
+    pub fn ycash_founder_address_list(&self) -> &[&str] {
+        match self {
+            Network::Mainnet => &mainnet::YCASH_FOUNDER_ADDRESS_LIST,
+            Network::Testnet(_) => &testnet::YCASH_FOUNDER_ADDRESS_LIST,
+        }
+    }
+
+    /// Returns the first height at or after which no Ycash founders' reward
+    /// output is required in the coinbase transaction.
+    pub fn ydf_mandate_end_height(&self) -> Height {
+        match self {
+            Network::Mainnet => Height(mainnet::YDF_MANDATE_END_HEIGHT),
+            Network::Testnet(_) => Height(testnet::YDF_MANDATE_END_HEIGHT),
+        }
+    }
+
+    /// Returns the post-UPGRADE_YCASH founders' reward address change
+    /// interval for this network, in blocks.
+    pub fn ycash_founder_address_change_interval(&self) -> u32 {
+        match self {
+            Network::Mainnet => mainnet::YCASH_FOUNDER_ADDRESS_CHANGE_INTERVAL,
+            Network::Testnet(_) => testnet::YCASH_FOUNDER_ADDRESS_CHANGE_INTERVAL,
         }
     }
 }

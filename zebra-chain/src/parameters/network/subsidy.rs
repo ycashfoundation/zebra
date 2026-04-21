@@ -507,10 +507,42 @@ pub fn miner_subsidy(
     expected_block_subsidy - founders_reward - funding_streams_sum
 }
 
-/// Returns the founders reward address for a given height and network as described in [§7.9].
+/// Returns the founders reward address for a given height and network.
+///
+/// Implements the two-phase Ycash rule from
+/// `ycashd/src/chainparams.cpp::GetFoundersRewardAddressAtHeight`:
+///
+/// - Before UPGRADE_YCASH: selects from the 48 pre-fork addresses (the legacy
+///   Zcash founder list) using the Zcash pre-Blossom / Blossom-adjusted
+///   formula, per [§7.9] of the Zcash protocol spec. ycashd's
+///   `keyIO.ZecToYec()` re-encoding happens naturally here because Zebra's
+///   `NetworkKind::b58_*_address_prefix()` returns Ycash prefixes on output.
+/// - At or after UPGRADE_YCASH, and before [`ydf_mandate_end_height`]: selects
+///   from the 48 Ycash post-fork addresses using a fixed 17_917-block change
+///   interval with modulo wrapping, so the list cycles for the full mandate
+///   window.
+/// - After the mandate ends, returns `None` (there is no founders' reward to
+///   pay).
 ///
 /// [§7.9]: <https://zips.z.cash/protocol/protocol.pdf#foundersreward>
 pub fn founders_reward_address(net: &Network, height: Height) -> Option<transparent::Address> {
+    let ycash_activation_height = NetworkUpgrade::Ycash.activation_height(net)?;
+
+    if height < ycash_activation_height {
+        founders_reward_address_pre_ycash(net, height)
+    } else if height < net.ydf_mandate_end_height() {
+        founders_reward_address_post_ycash(net, height, ycash_activation_height)
+    } else {
+        None
+    }
+}
+
+/// Pre-UPGRADE_YCASH founders' reward address, using the legacy Zcash address
+/// list and the pre-Blossom / Blossom-adjusted formula.
+fn founders_reward_address_pre_ycash(
+    net: &Network,
+    height: Height,
+) -> Option<transparent::Address> {
     let founders_address_list = net.founder_address_list();
     let num_founder_addresses = u32::try_from(founders_address_list.len()).ok()?;
     let slow_start_shift = u32::from(net.slow_start_shift());
@@ -545,19 +577,57 @@ pub fn founders_reward_address(net: &Network, height: Height) -> Option<transpar
         .and_then(|a| a.parse().ok())
 }
 
-/// `FoundersReward(height)` as described in [§7.8].
+/// Post-UPGRADE_YCASH founders' reward address, using the Ycash founder list
+/// with a fixed change interval and modulo wrapping.
+fn founders_reward_address_post_ycash(
+    net: &Network,
+    height: Height,
+    ycash_activation_height: Height,
+) -> Option<transparent::Address> {
+    let ycash_addresses = net.ycash_founder_address_list();
+    if ycash_addresses.is_empty() {
+        return None;
+    }
+
+    let height = u32::from(height);
+    let ycash_activation_height = u32::from(ycash_activation_height);
+    let offset = height.checked_sub(ycash_activation_height)?;
+    let interval = net.ycash_founder_address_change_interval();
+
+    let index = (offset / interval) as usize % ycash_addresses.len();
+    ycash_addresses.get(index).and_then(|a| a.parse().ok())
+}
+
+/// `FoundersReward(height)` for Ycash.
 ///
-/// [§7.8]: <https://zips.z.cash/protocol/protocol.pdf#subsidies>
+/// Matches the two-phase rule in `ycashd/src/main.cpp` (search
+/// `UPGRADE_YCASH`):
+///
+/// - Pre-UPGRADE_YCASH: 20% of the block subsidy (`subsidy / 5`), the same as
+///   Zcash's founders' reward up to the first halving. ycashd further gates
+///   this on `height <= GetLastFoundersRewardBlockHeight(height)`, i.e. the
+///   pre-Blossom first halving. Zebra's `halving(height, net) < 1` captures
+///   the same invariant.
+/// - Post-UPGRADE_YCASH, before [`ydf_mandate_end_height`]: 5% of the block
+///   subsidy (`subsidy / 20`), ycashd's continuation of the founders' reward
+///   in lieu of Zcash's funding-stream swap at Canopy.
+/// - Otherwise: zero.
 pub fn founders_reward(net: &Network, height: Height) -> Amount<NonNegative> {
-    // The founders reward is 20% of the block subsidy before the first halving, and 0 afterwards.
-    //
-    // On custom testnets, the first halving can occur later than Canopy, which causes an
-    // inconsistency in the definition of the founders reward, which should occur only before
-    // Canopy, so we check if Canopy is active as well.
-    if halving(height, net) < 1 && NetworkUpgrade::current(net, height) < NetworkUpgrade::Canopy {
-        block_subsidy(height, net)
-            .map(|subsidy| subsidy.div_exact(5))
-            .expect("block subsidy must be valid for founders rewards")
+    let Some(ycash_activation_height) = NetworkUpgrade::Ycash.activation_height(net) else {
+        return Amount::zero();
+    };
+
+    let subsidy = block_subsidy(height, net)
+        .expect("block subsidy must be valid for founders rewards");
+
+    if height < ycash_activation_height {
+        if halving(height, net) < 1 {
+            subsidy.div_exact(5)
+        } else {
+            Amount::zero()
+        }
+    } else if height < net.ydf_mandate_end_height() {
+        subsidy.div_exact(20)
     } else {
         Amount::zero()
     }

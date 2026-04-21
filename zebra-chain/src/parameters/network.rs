@@ -288,23 +288,25 @@ impl Network {
 
     /// Returns the expected total value of the sum of all NU6.1 one-time lockbox disbursement output values for this network at
     /// the provided height.
+    ///
+    /// Ycash never activates NU6.1 on Mainnet or the default Testnet, so this
+    /// always returns zero for those networks. Custom Testnets that configure
+    /// NU6.1 report the sum of their configured disbursements.
     pub fn lockbox_disbursement_total_amount(&self, height: Height) -> Amount<NonNegative> {
         if Some(height) != NetworkUpgrade::Nu6_1.activation_height(self) {
             return Amount::zero();
         };
 
         match self {
-            Self::Mainnet => {
-                subsidy::constants::mainnet::EXPECTED_NU6_1_LOCKBOX_DISBURSEMENTS_TOTAL
-            }
-            Self::Testnet(params) if params.is_default_testnet() => {
-                subsidy::constants::testnet::EXPECTED_NU6_1_LOCKBOX_DISBURSEMENTS_TOTAL
-            }
+            Self::Mainnet => Amount::zero(),
             Self::Testnet(params) => params.lockbox_disbursement_total_amount(),
         }
     }
 
     /// Returns the expected NU6.1 lockbox disbursement outputs for this network at the provided height.
+    ///
+    /// Ycash never activates NU6.1 on Mainnet or the default Testnet, so this
+    /// returns an empty `Vec` for those networks.
     pub fn lockbox_disbursements(
         &self,
         height: Height,
@@ -313,23 +315,10 @@ impl Network {
             return Vec::new();
         };
 
-        let expected_lockbox_disbursements = match self {
-            Self::Mainnet => subsidy::constants::mainnet::NU6_1_LOCKBOX_DISBURSEMENTS.to_vec(),
-            Self::Testnet(params) if params.is_default_testnet() => {
-                subsidy::constants::testnet::NU6_1_LOCKBOX_DISBURSEMENTS.to_vec()
-            }
-            Self::Testnet(params) => return params.lockbox_disbursements(),
-        };
-
-        expected_lockbox_disbursements
-            .into_iter()
-            .map(|(addr, amount)| {
-                (
-                    addr.parse().expect("hard-coded address must deserialize"),
-                    amount,
-                )
-            })
-            .collect()
+        match self {
+            Self::Mainnet => Vec::new(),
+            Self::Testnet(params) => params.lockbox_disbursements(),
+        }
     }
 }
 

@@ -340,99 +340,11 @@ fn check_full_activation_list() {
 /// and that funding stream configurations that should be valid can be built.
 #[test]
 fn check_configured_funding_stream_constraints() {
-    let configured_funding_streams = [
-        Default::default(),
-        ConfiguredFundingStreams {
-            height_range: Some(Height(2_000_000)..Height(2_200_000)),
-            ..Default::default()
-        },
-        ConfiguredFundingStreams {
-            height_range: Some(Height(20)..Height(30)),
-            recipients: None,
-        },
-        ConfiguredFundingStreams {
-            recipients: Some(vec![ConfiguredFundingStreamRecipient {
-                receiver: FundingStreamReceiver::Ecc,
-                numerator: 20,
-                addresses: Some(
-                    subsidy::constants::testnet::FUNDING_STREAM_ECC_ADDRESSES
-                        .map(Into::into)
-                        .to_vec(),
-                ),
-            }]),
-            ..Default::default()
-        },
-        ConfiguredFundingStreams {
-            recipients: Some(vec![ConfiguredFundingStreamRecipient {
-                receiver: FundingStreamReceiver::Ecc,
-                numerator: 100,
-                addresses: Some(
-                    subsidy::constants::testnet::FUNDING_STREAM_ECC_ADDRESSES
-                        .map(Into::into)
-                        .to_vec(),
-                ),
-            }]),
-            ..Default::default()
-        },
-    ];
-
-    for configured_funding_streams in configured_funding_streams {
-        for is_pre_nu6 in [false, true] {
-            let (network_funding_streams, default_funding_streams) = if is_pre_nu6 {
-                (
-                    testnet::Parameters::build()
-                        .with_funding_streams(vec![configured_funding_streams.clone()])
-                        .to_network()
-                        .expect("failed to build configured network")
-                        .all_funding_streams()[0]
-                        .clone(),
-                    subsidy::constants::testnet::FUNDING_STREAMS[0].clone(),
-                )
-            } else {
-                (
-                    testnet::Parameters::build()
-                        .with_funding_streams(vec![
-                            Default::default(),
-                            configured_funding_streams.clone(),
-                        ])
-                        .to_network()
-                        .expect("failed to build configured network")
-                        .all_funding_streams()[1]
-                        .clone(),
-                    subsidy::constants::testnet::FUNDING_STREAMS[1].clone(),
-                )
-            };
-
-            let expected_height_range = configured_funding_streams
-                .height_range
-                .clone()
-                .unwrap_or(default_funding_streams.height_range().clone());
-
-            assert_eq!(
-                network_funding_streams.height_range().clone(),
-                expected_height_range,
-                "should use default start height when unconfigured"
-            );
-
-            let expected_recipients = configured_funding_streams
-                .recipients
-                .clone()
-                .map(|recipients| {
-                    recipients
-                        .into_iter()
-                        .map(ConfiguredFundingStreamRecipient::into_recipient)
-                        .collect()
-                })
-                .unwrap_or(default_funding_streams.recipients().clone());
-
-            assert_eq!(
-                network_funding_streams.recipients().clone(),
-                expected_recipients,
-                "should use default recipients when unconfigured"
-            );
-        }
-    }
-
+    // On Ycash the default funding-stream table is empty, so the upstream
+    // "configured values fall back to defaults" loop doesn't apply. The
+    // structural builder-validation panics below are still meaningful; we
+    // hand-seed addresses from the Ycash founder lists to ensure each fixture
+    // is parseable on the target network.
     std::panic::set_hook(Box::new(|_| {}));
 
     // should panic when there are fewer addresses than the max funding stream address index.
@@ -457,9 +369,10 @@ fn check_configured_funding_stream_constraints() {
                     receiver: FundingStreamReceiver::Ecc,
                     numerator: 101,
                     addresses: Some(
-                        subsidy::constants::testnet::FUNDING_STREAM_ECC_ADDRESSES
-                            .map(Into::into)
-                            .to_vec(),
+                        subsidy::constants::testnet::YCASH_FOUNDER_ADDRESS_LIST
+                            .iter()
+                            .map(|s| s.to_string())
+                            .collect(),
                     ),
                 }]),
                 ..Default::default()
@@ -475,9 +388,10 @@ fn check_configured_funding_stream_constraints() {
                     receiver: FundingStreamReceiver::Ecc,
                     numerator: 10,
                     addresses: Some(
-                        subsidy::constants::mainnet::FUNDING_STREAM_ECC_ADDRESSES
-                            .map(Into::into)
-                            .to_vec(),
+                        subsidy::constants::mainnet::YCASH_FOUNDER_ADDRESS_LIST
+                            .iter()
+                            .map(|s| s.to_string())
+                            .collect(),
                     ),
                 }]),
                 ..Default::default()
@@ -499,23 +413,43 @@ fn check_configured_funding_stream_constraints() {
 /// Check that `new_regtest()` constructs a network with the provided funding streams.
 #[test]
 fn check_configured_funding_stream_regtest() {
+    // On Ycash the default testnet has no funding streams, so the upstream
+    // version's "derive a regtest fixture from default_testnet" pattern
+    // doesn't work here. Hand-construct two minimal regtest fixtures — the
+    // point of the test is that `Network::new_regtest()` preserves the
+    // configured funding streams verbatim. We use the Ycash testnet founder
+    // list to guarantee the addresses parse on the target network.
     let default_testnet = Network::new_default_testnet();
 
-    let default_pre_nu6_funding_streams = &default_testnet.all_funding_streams()[0];
-    let mut configured_pre_nu6_funding_streams =
-        ConfiguredFundingStreams::from(default_pre_nu6_funding_streams);
-    configured_pre_nu6_funding_streams.height_range = Some(
-        default_pre_nu6_funding_streams.height_range().start
-            ..(default_pre_nu6_funding_streams.height_range().start + 20).unwrap(),
-    );
+    let addresses: Vec<String> = subsidy::constants::testnet::YCASH_FOUNDER_ADDRESS_LIST
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
 
-    let default_post_nu6_funding_streams = &default_testnet.all_funding_streams()[1];
-    let mut configured_post_nu6_funding_streams =
-        ConfiguredFundingStreams::from(default_post_nu6_funding_streams);
-    configured_post_nu6_funding_streams.height_range = Some(
-        default_post_nu6_funding_streams.height_range().start
-            ..(default_post_nu6_funding_streams.height_range().start + 20).unwrap(),
-    );
+    let configured_pre_nu6_funding_streams = ConfiguredFundingStreams {
+        height_range: Some(Height(100)..Height(120)),
+        recipients: Some(vec![ConfiguredFundingStreamRecipient {
+            receiver: FundingStreamReceiver::MajorGrants,
+            numerator: 8,
+            addresses: Some(addresses.clone()),
+        }]),
+    };
+
+    let configured_post_nu6_funding_streams = ConfiguredFundingStreams {
+        height_range: Some(Height(200)..Height(220)),
+        recipients: Some(vec![
+            ConfiguredFundingStreamRecipient {
+                receiver: FundingStreamReceiver::Deferred,
+                numerator: 12,
+                addresses: None,
+            },
+            ConfiguredFundingStreamRecipient {
+                receiver: FundingStreamReceiver::MajorGrants,
+                numerator: 8,
+                addresses: Some(addresses),
+            },
+        ]),
+    };
 
     let regtest = Network::new_regtest(RegtestParameters {
         activation_heights: (&default_testnet.activation_list()).into(),
@@ -541,7 +475,14 @@ fn check_configured_funding_stream_regtest() {
     );
 }
 
+// ZIP-271 one-time lockbox disbursement machinery is NU6.1-specific. Ycash
+// never activates NU6.1 on Mainnet or the default Testnet, and the helper
+// `lockbox_input_value` below asserts that the `Deferred` funding stream
+// exists (which is tied to the Zcash post-Canopy funding-stream table that
+// Ycash has replaced with a continuous founders' reward). Re-enable and
+// adapt if Ycash ever ships NU6.1.
 #[test]
+#[ignore = "ZIP-271 lockbox disbursements don't apply on Ycash"]
 fn sum_of_one_time_lockbox_disbursements_is_correct() {
     let mut configured_activation_heights: ConfiguredActivationHeights =
         Network::new_default_testnet().activation_list().into();
@@ -624,70 +565,68 @@ fn lockbox_input_value(network: &Network, height: Height) -> Amount<NonNegative>
 fn funding_streams_default_values() {
     let _init_guard = zebra_test::init();
 
-    let fs = vec![
-        ConfiguredFundingStreams {
-            height_range: Some(Height(1_028_500 - 1)..Height(2_796_000 - 1)),
-            // Will read from existing values
-            recipients: None,
-        },
-        ConfiguredFundingStreams {
-            // Will read from existing values
-            height_range: None,
-            recipients: Some(vec![
-                ConfiguredFundingStreamRecipient {
-                    receiver: FundingStreamReceiver::Deferred,
-                    numerator: 1,
-                    addresses: None,
-                },
-                ConfiguredFundingStreamRecipient {
-                    receiver: FundingStreamReceiver::MajorGrants,
-                    numerator: 2,
-                    addresses: Some(
-                        subsidy::constants::testnet::POST_NU6_FUNDING_STREAM_FPF_ADDRESSES
-                            .iter()
-                            .map(|s| s.to_string())
-                            .collect(),
-                    ),
-                },
-            ]),
-        },
-    ];
+    // Upstream Zebra tested that the testnet builder fills in defaults for
+    // unset fields of a `ConfiguredFundingStreams`. On Ycash the default
+    // `testnet::FUNDING_STREAMS` table is empty (Ycash has no funding streams
+    // — see `founders_reward` for the replacement), so the
+    // "unconfigured-recipients-fall-back-to-defaults" path has nothing to
+    // check. Verify instead that the default table really is empty and that a
+    // fully-configured stream is preserved verbatim.
+    assert!(
+        subsidy::constants::testnet::FUNDING_STREAMS.is_empty(),
+        "Ycash testnet default FUNDING_STREAMS should be empty"
+    );
+    assert!(
+        subsidy::constants::mainnet::FUNDING_STREAMS.is_empty(),
+        "Ycash mainnet default FUNDING_STREAMS should be empty"
+    );
+
+    // Use a short height range so the 48-address YCASH_FOUNDER_ADDRESS_LIST
+    // is more than enough to satisfy `check_funding_stream_address_period`.
+    let fs = vec![ConfiguredFundingStreams {
+        height_range: Some(Height(1_028_500)..Height(1_028_600)),
+        recipients: Some(vec![
+            ConfiguredFundingStreamRecipient {
+                receiver: FundingStreamReceiver::Deferred,
+                numerator: 1,
+                addresses: None,
+            },
+            ConfiguredFundingStreamRecipient {
+                receiver: FundingStreamReceiver::MajorGrants,
+                numerator: 2,
+                addresses: Some(
+                    subsidy::constants::testnet::YCASH_FOUNDER_ADDRESS_LIST
+                        .iter()
+                        .map(|s| s.to_string())
+                        .collect(),
+                ),
+            },
+        ]),
+    }];
 
     let network = testnet::Parameters::build()
         .with_funding_streams(fs)
         .to_network()
         .expect("failed to build configured network");
 
-    // Check if value hasn't changed
     assert_eq!(
         network.all_funding_streams()[0].height_range().clone(),
-        Height(1_028_500 - 1)..Height(2_796_000 - 1)
+        Height(1_028_500)..Height(1_028_600)
     );
-    // Check if value was copied from default
     assert_eq!(
         network.all_funding_streams()[0]
-            .recipients()
-            .get(&FundingStreamReceiver::ZcashFoundation)
-            .unwrap()
-            .addresses(),
-        subsidy::constants::testnet::FUNDING_STREAMS[0]
-            .recipients()
-            .get(&FundingStreamReceiver::ZcashFoundation)
-            .unwrap()
-            .addresses()
-    );
-    // Check if value was copied from default
-    assert_eq!(
-        network.all_funding_streams()[1].height_range(),
-        subsidy::constants::testnet::FUNDING_STREAMS[1].height_range()
-    );
-    // Check if value hasn't changed
-    assert_eq!(
-        network.all_funding_streams()[1]
             .recipients()
             .get(&FundingStreamReceiver::Deferred)
             .unwrap()
             .numerator(),
         1
+    );
+    assert_eq!(
+        network.all_funding_streams()[0]
+            .recipients()
+            .get(&FundingStreamReceiver::MajorGrants)
+            .unwrap()
+            .numerator(),
+        2
     );
 }

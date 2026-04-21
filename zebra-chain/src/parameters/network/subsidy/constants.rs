@@ -35,6 +35,9 @@ pub(crate) const FUNDING_STREAM_RECEIVER_DENOMINATOR: u64 = 100;
 
 /// The specification for pre-NU6 funding stream receivers, a URL that links to [ZIP-214].
 ///
+/// Retained on Ycash because the [`super::FundingStreamReceiver::info`] helper
+/// still references it, even though Ycash has no active funding streams.
+///
 /// [ZIP-214]: https://zips.z.cash/zip-0214
 pub(crate) const FUNDING_STREAM_SPECIFICATION: &str = "https://zips.z.cash/zip-0214";
 
@@ -42,7 +45,3 @@ pub(crate) const FUNDING_STREAM_SPECIFICATION: &str = "https://zips.z.cash/zip-0
 ///
 /// [ZIP-1015]: https://zips.z.cash/zip-1015
 pub(crate) const LOCKBOX_SPECIFICATION: &str = "https://zips.z.cash/zip-1015";
-
-/// The number of blocks contained in the post-NU6 funding streams height ranges on Mainnet or Testnet, as specified
-/// in [ZIP-1015](https://zips.z.cash/zip-1015).
-pub(crate) const POST_NU6_FUNDING_STREAM_NUM_BLOCKS: u32 = 420_000;

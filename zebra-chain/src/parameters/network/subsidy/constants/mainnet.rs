@@ -1,103 +1,39 @@
 //! Mainnet-specific constants for block subsidies.
+//!
+//! Ycash continues paying a founders' reward past Canopy (instead of Zcash's
+//! funding-stream swap) and never activates NU6, NU6.1, or any later upgrade,
+//! so the funding-stream table is empty on mainnet. See
+//! [`crate::parameters::network::subsidy::founders_reward`] for the two-phase
+//! founders' reward rule that replaces funding streams on Ycash.
 
 use lazy_static::lazy_static;
 
-use crate::parameters::{
-    network::{Amount, Height, NonNegative},
-    subsidy::{
-        constants::POST_NU6_FUNDING_STREAM_NUM_BLOCKS, FundingStreamReceiver,
-        FundingStreamRecipient, FundingStreams,
-    },
-};
+use crate::parameters::subsidy::FundingStreams;
 
-/// The start height of post-NU6 funding streams on Mainnet as described in [ZIP-1015](https://zips.z.cash/zip-1015).
-pub(crate) const POST_NU6_FUNDING_STREAM_START_HEIGHT: u32 = 2_726_400;
+/// The height at which Ycash's YDF mandate ends on Mainnet, per
+/// `nYdfMandateEndHeight` in `ycashd/src/chainparams.cpp`. Blocks at heights
+/// `1..YDF_MANDATE_END_HEIGHT` (excluding the end) pay a founders' reward;
+/// at or after this height no founders' reward is required.
+pub(crate) const YDF_MANDATE_END_HEIGHT: u32 = 2_275_000;
 
-/// The one-time lockbox disbursement output addresses and amounts expected in the NU6.1 activation block's
-/// coinbase transaction on Mainnet.
-///
-/// See:
-///
-/// - <https://zips.z.cash/zip-0271#one-timelockboxdisbursement>
-/// - <https://zips.z.cash/zip-0214#mainnet-recipients-for-revision-2>
-pub(crate) const NU6_1_LOCKBOX_DISBURSEMENTS: [(&str, Amount<NonNegative>); 10] = [(
-    "t3ev37Q2uL1sfTsiJQJiWJoFzQpDhmnUwYo",
-    EXPECTED_NU6_1_LOCKBOX_DISBURSEMENTS_TOTAL.div_exact(10),
-); 10];
+/// Post-UPGRADE_YCASH address-change interval (roughly one month at 150s
+/// target spacing), per `ycashd/src/chainparams.cpp`
+/// `GetFoundersRewardAddressAtHeight`.
+pub(crate) const YCASH_FOUNDER_ADDRESS_CHANGE_INTERVAL: u32 = 17_917;
 
-/// The expected total amount of the one-time lockbox disbursement on Mainnet.
-/// See: <https://zips.z.cash/zip-0271#one-timelockboxdisbursement>.
-pub(crate) const EXPECTED_NU6_1_LOCKBOX_DISBURSEMENTS_TOTAL: Amount<NonNegative> =
-    Amount::new_from_zec(78_750);
-
-/// The post-NU6 funding stream height range on Mainnet
-pub(crate) const POST_NU6_FUNDING_STREAM_START_RANGE: std::ops::Range<Height> =
-    Height(POST_NU6_FUNDING_STREAM_START_HEIGHT)
-        ..Height(POST_NU6_FUNDING_STREAM_START_HEIGHT + POST_NU6_FUNDING_STREAM_NUM_BLOCKS);
-
-/// Number of addresses for each funding stream in the Mainnet.
-/// In the spec ([protocol specification §7.10][7.10]) this is defined as: `fs.addressindex(fs.endheight - 1)`
-/// however we know this value beforehand so we prefer to make it a constant instead.
-///
-/// [7.10]: https://zips.z.cash/protocol/protocol.pdf#fundingstreams
-pub(crate) const FUNDING_STREAMS_NUM_ADDRESSES: usize = 48;
-
-/// List of addresses for the ECC funding stream in the Mainnet.
-pub(crate) const FUNDING_STREAM_ECC_ADDRESSES: [&str; FUNDING_STREAMS_NUM_ADDRESSES] = [
-    "t3LmX1cxWPPPqL4TZHx42HU3U5ghbFjRiif",
-    "t3Toxk1vJQ6UjWQ42tUJz2rV2feUWkpbTDs",
-    "t3ZBdBe4iokmsjdhMuwkxEdqMCFN16YxKe6",
-    "t3ZuaJziLM8xZ32rjDUzVjVtyYdDSz8GLWB",
-    "t3bAtYWa4bi8VrtvqySxnbr5uqcG9czQGTZ",
-    "t3dktADfb5Rmxncpe1HS5BRS5Gcj7MZWYBi",
-    "t3hgskquvKKoCtvxw86yN7q8bzwRxNgUZmc",
-    "t3R1VrLzwcxAZzkX4mX3KGbWpNsgtYtMntj",
-    "t3ff6fhemqPMVujD3AQurxRxTdvS1pPSaa2",
-    "t3cEUQFG3KYnFG6qYhPxSNgGi3HDjUPwC3J",
-    "t3WR9F5U4QvUFqqx9zFmwT6xFqduqRRXnaa",
-    "t3PYc1LWngrdUrJJbHkYPCKvJuvJjcm85Ch",
-    "t3bgkjiUeatWNkhxY3cWyLbTxKksAfk561R",
-    "t3Z5rrR8zahxUpZ8itmCKhMSfxiKjUp5Dk5",
-    "t3PU1j7YW3fJ67jUbkGhSRto8qK2qXCUiW3",
-    "t3S3yaT7EwNLaFZCamfsxxKwamQW2aRGEkh",
-    "t3eutXKJ9tEaPSxZpmowhzKhPfJvmtwTEZK",
-    "t3gbTb7brxLdVVghSPSd3ycGxzHbUpukeDm",
-    "t3UCKW2LrHFqPMQFEbZn6FpjqnhAAbfpMYR",
-    "t3NyHsrnYbqaySoQqEQRyTWkjvM2PLkU7Uu",
-    "t3QEFL6acxuZwiXtW3YvV6njDVGjJ1qeaRo",
-    "t3PdBRr2S1XTDzrV8bnZkXF3SJcrzHWe1wj",
-    "t3ZWyRPpWRo23pKxTLtWsnfEKeq9T4XPxKM",
-    "t3he6QytKCTydhpztykFsSsb9PmBT5JBZLi",
-    "t3VWxWDsLb2TURNEP6tA1ZSeQzUmPKFNxRY",
-    "t3NmWLvZkbciNAipauzsFRMxoZGqmtJksbz",
-    "t3cKr4YxVPvPBG1mCvzaoTTdBNokohsRJ8n",
-    "t3T3smGZn6BoSFXWWXa1RaoQdcyaFjMfuYK",
-    "t3gkDUe9Gm4GGpjMk86TiJZqhztBVMiUSSA",
-    "t3eretuBeBXFHe5jAqeSpUS1cpxVh51fAeb",
-    "t3dN8g9zi2UGJdixGe9txeSxeofLS9t3yFQ",
-    "t3S799pq9sYBFwccRecoTJ3SvQXRHPrHqvx",
-    "t3fhYnv1S5dXwau7GED3c1XErzt4n4vDxmf",
-    "t3cmE3vsBc5xfDJKXXZdpydCPSdZqt6AcNi",
-    "t3h5fPdjJVHaH4HwynYDM5BB3J7uQaoUwKi",
-    "t3Ma35c68BgRX8sdLDJ6WR1PCrKiWHG4Da9",
-    "t3LokMKPL1J8rkJZvVpfuH7dLu6oUWqZKQK",
-    "t3WFFGbEbhJWnASZxVLw2iTJBZfJGGX73mM",
-    "t3L8GLEsUn4QHNaRYcX3EGyXmQ8kjpT1zTa",
-    "t3PgfByBhaBSkH8uq4nYJ9ZBX4NhGCJBVYm",
-    "t3WecsqKDhWXD4JAgBVcnaCC2itzyNZhJrv",
-    "t3ZG9cSfopnsMQupKW5v9sTotjcP5P6RTbn",
-    "t3hC1Ywb5zDwUYYV8LwhvF5rZ6m49jxXSG5",
-    "t3VgMqDL15ZcyQDeqBsBW3W6rzfftrWP2yB",
-    "t3LC94Y6BwLoDtBoK2NuewaEbnko1zvR9rm",
-    "t3cWCUZJR3GtALaTcatrrpNJ3MGbMFVLRwQ",
-    "t3YYF4rPLVxDcF9hHFsXyc5Yq1TFfbojCY6",
-    "t3XHAGxRP2FNfhAjxGjxbrQPYtQQjc3RCQD",
-];
-
-/// Number of founder addresses on Mainnet.
+/// Number of founder addresses on Mainnet (pre-UPGRADE_YCASH).
 pub(crate) const NUM_FOUNDER_ADDRESSES: usize = 48;
 
-/// List of founder addresses on Mainnet.
+/// Number of Ycash founder addresses on Mainnet (post-UPGRADE_YCASH).
+pub(crate) const NUM_YCASH_FOUNDER_ADDRESSES: usize = 48;
+
+/// List of pre-UPGRADE_YCASH founder addresses on Mainnet, per
+/// `vFoundersRewardAddress` in `ycashd/src/chainparams.cpp`. These are the
+/// original 48 Zcash founder addresses; ycashd re-encodes them with Ycash
+/// base58 prefixes at validation time (`keyIO.ZecToYec`). In Zebra we store
+/// them in their original Zcash form — `Address::FromStr` accepts the legacy
+/// Zcash prefixes, and the parsed `transparent::Address` is stringified with
+/// Ycash prefixes by `NetworkKind::b58_*_address_prefix()` on output.
 pub(crate) const FOUNDER_ADDRESS_LIST: [&str; NUM_FOUNDER_ADDRESSES] = [
     "t3Vz22vK5z2LcKEdg16Yv4FFneEL1zg9ojd",
     "t3cL9AucCajm3HXDhb5jBnJK2vapVoXsop3",
@@ -149,84 +85,65 @@ pub(crate) const FOUNDER_ADDRESS_LIST: [&str; NUM_FOUNDER_ADDRESSES] = [
     "t3Pcm737EsVkGTbhsu2NekKtJeG92mvYyoN",
 ];
 
-/// List of addresses for the Zcash Foundation funding stream in the Mainnet.
-pub(crate) const FUNDING_STREAM_ZF_ADDRESSES: [&str; FUNDING_STREAMS_NUM_ADDRESSES] =
-    ["t3dvVE3SQEi7kqNzwrfNePxZ1d4hUyztBA1"; FUNDING_STREAMS_NUM_ADDRESSES];
-
-/// List of addresses for the Major Grants funding stream in the Mainnet.
-pub(crate) const FUNDING_STREAM_MG_ADDRESSES: [&str; FUNDING_STREAMS_NUM_ADDRESSES] =
-    ["t3XyYW8yBFRuMnfvm5KLGFbEVz25kckZXym"; FUNDING_STREAMS_NUM_ADDRESSES];
-
-/// Number of addresses for each post-NU6 funding stream on Mainnet.
-/// In the spec ([protocol specification §7.10][7.10]) this is defined as: `fs.addressindex(fs.endheight - 1)`
-/// however we know this value beforehand so we prefer to make it a constant instead.
-///
-/// [7.10]: https://zips.z.cash/protocol/protocol.pdf#fundingstreams
-pub(crate) const POST_NU6_FUNDING_STREAMS_NUM_ADDRESSES: usize = 12;
-
-/// List of addresses for the Major Grants post-NU6 funding stream on Mainnet administered by the Financial Privacy Fund (FPF).
-pub(crate) const POST_NU6_FUNDING_STREAM_FPF_ADDRESSES: [&str;
-    POST_NU6_FUNDING_STREAMS_NUM_ADDRESSES] =
-    ["t3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow"; POST_NU6_FUNDING_STREAMS_NUM_ADDRESSES];
-
-/// Number of addresses for each post-NU6.1 funding stream on Mainnet.
-/// In the spec ([protocol specification §7.10][7.10]) this is defined as: `fs.addressindex(fs.endheight - 1)`
-/// however we know this value beforehand so we prefer to make it a constant instead.
-///
-/// Unused on Ycash: NU6.1 never activates. Retained for upstream-merge fidelity.
-///
-/// [7.10]: https://zips.z.cash/protocol/protocol.pdf#fundingstreams
-#[allow(dead_code)]
-pub(crate) const POST_NU6_1_FUNDING_STREAMS_NUM_ADDRESSES: usize = 36;
-
-/// List of addresses for the Major Grants post-NU6.1 funding stream on Mainnet administered by the Financial Privacy Fund (FPF).
-#[allow(dead_code)]
-pub(crate) const POST_NU6_1_FUNDING_STREAM_FPF_ADDRESSES: [&str;
-    POST_NU6_1_FUNDING_STREAMS_NUM_ADDRESSES] =
-    ["t3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow"; POST_NU6_1_FUNDING_STREAMS_NUM_ADDRESSES];
+/// List of post-UPGRADE_YCASH Ycash founder addresses on Mainnet, per
+/// `vYcashFoundersRewardAddress` in `ycashd/src/chainparams.cpp`. These are
+/// selected by `(height - UPGRADE_YCASH_height) / YCASH_FOUNDER_ADDRESS_CHANGE_INTERVAL`,
+/// modulo the list length — the list cycles continuously until
+/// `YDF_MANDATE_END_HEIGHT`.
+pub(crate) const YCASH_FOUNDER_ADDRESS_LIST: [&str; NUM_YCASH_FOUNDER_ADDRESSES] = [
+    "s1hfWJ4ej1H3s8XCUb7YnrU68K64AsGVUHE",
+    "s1iZaRoYtafWspcieQxg6hhaU4DfZyAdGQf",
+    "s1RSr6xec6Cc98emM4cdq45rkVekHMjRWbw",
+    "s1RsqYeweoKVepivLPLsiajE8c6khu5UKhS",
+    "s1MNmqMWyV4nMWE4oDb1nqJs7haJrv9QTKp",
+    "s1RP95ESdcu33gMtU7deLW9TP6yDZncjRQ7",
+    "s1h8W7xQbiU8Zxu21Zcg82NByjkWMcEbNtX",
+    "s1PVcdfcrJrDCmXxgSTGuKGSNhwSYZ51XKJ",
+    "s1PkV5nFkgQN4EGuTtEcmm4CxeBVx2L5HHv",
+    "s1jiVSTfMaFUrWnf17BGc416oomHbut58Ue",
+    "s1Zr2KdHtnK2zNSMQDrAVv3KU51mgDbqgwe",
+    "s1QkY6tmBHPZacXPMPmsjP37Kxgs5mcgcAn",
+    "s1Xu76ZmGDENdLFAiuj5iMdp1RA4hWSNieq",
+    "s1bdiEnfBYaEgrt2TmnY3ZHmdhg5AEw9tjN",
+    "s1asM9Ui4U13GjmLoAhvfK6J5QihemQR9Pk",
+    "s1QhTSXYu4K1cTNomN27wiep9WC9HBZjrxJ",
+    "s1j3Ef2qCNjwRAM18BgwsPAZFzZ475BWM5S",
+    "s1QZibiN7iqVCfVBES9Gn7e3o5psxRKtpwE",
+    "s1fdiDZHkzp8K8UajpVwYUdyFeb6jNVyoKv",
+    "s1iMShbVRH1eCGxK2ZoLMDn5o9NcwXkNPVF",
+    "s1YtUXAMt8m31gGeP5m3Y53B1wrMk3FFigJ",
+    "s1gy9aqWUihGRjZa3vqc7136vqTGNAWyefF",
+    "s1NNozrex18HZqcHCGpGoSRkj8hqHLEPaVC",
+    "s1NYNDdqthMf7D7sZbnLGuecDtXb48Ne2bf",
+    "s1P7UJ9Wp7jstJPUbvMSRVFjN8tfQueQSK3",
+    "s1RDeyH7xg8y9veb9XfAmtKzrMTjFS14c4T",
+    "s1NmH6MNXU19xoHjUfpQpb4dEMSy1Wbs9tC",
+    "s1UnFL2yrZapMKmB5EqaBKpogZmnXLUgELB",
+    "s1XT3W1sLFdgmGoecQbPdJbjUDMurW8CFA2",
+    "s1gyVwgangQxLCAcm8VS4SWqXDqeohNg7hd",
+    "s1k3eWbqnbVM1xtZEDc81UbFdwXgXNnbtdH",
+    "s1Wr6eAh3gZWwBVRZcND9YCzdNfR9cARkD4",
+    "s1dtjp2KHWZ6qF2LvgNiEwjJV2dA2c6y75V",
+    "s1cjQf9kmjQdTmnn6mbBaesHMNLt2JqjyEV",
+    "s1URQeusSoi7fkgyAwCshFzobUzmLGH4U3b",
+    "s1Z9YqM2h48HUf8kcSHS89q4Z6Bg9xua3kA",
+    "s1TLmZzMDsDhYfh4vpY7NpRB4kao2UEEqKu",
+    "s1QEWvfC1uifDfi78NY7cArw9xLEja7QAZR",
+    "s1b4kfW9WMUtd2H7X4C64KLzqPWdMPXRMtS",
+    "s1cHTXzCXhKYAX7sY7D8YGcmopjN8Yngoju",
+    "s1QKjMQDeF9FLVo2sL8m11VC4ZA18s61s2K",
+    "s1gV8D561ZpmaZVxG176cQM1bMFMnHLvujE",
+    "s1caQmLCYVDZegcMoBckHD2RXjBh7ikpj2j",
+    "s1Y63AsWsJTk5t5nSZfaFcFWmtfnFUUAu2V",
+    "s1Y2U4GsfZdP9LAbC97GAmSdihBX5FU9gQn",
+    "s1bPYWZMXzyN2ML2vswDiCckmas775QFs2Q",
+    "s1erG25RcWYCiBPbT7khTU4ULhzm8jJZ7pv",
+    "s1kYEiPdFZ3oV389q2MmSYY932qPF1ygVtx",
+];
 
 lazy_static! {
-    /// The funding streams for Mainnet as described in:
-    /// - [protocol specification §7.10.1][7.10.1]
-    /// - [ZIP-1015](https://zips.z.cash/zip-1015)
-    /// - [ZIP-214#funding-streams](https://zips.z.cash/zip-0214#funding-streams)
-    ///
-    /// [7.10.1]: https://zips.z.cash/protocol/protocol.pdf#zip214fundingstreams
-    pub(crate) static ref FUNDING_STREAMS: Vec<FundingStreams> = vec![
-        FundingStreams {
-            height_range: Height(1_046_400)..Height(2_726_400),
-            recipients: [
-                (
-                    FundingStreamReceiver::Ecc,
-                    FundingStreamRecipient::new(7, FUNDING_STREAM_ECC_ADDRESSES),
-                ),
-                (
-                    FundingStreamReceiver::ZcashFoundation,
-                    FundingStreamRecipient::new(5, FUNDING_STREAM_ZF_ADDRESSES),
-                ),
-                (
-                    FundingStreamReceiver::MajorGrants,
-                    FundingStreamRecipient::new(8, FUNDING_STREAM_MG_ADDRESSES),
-                ),
-            ]
-            .into_iter()
-            .collect(),
-        },
-        FundingStreams {
-            height_range: POST_NU6_FUNDING_STREAM_START_RANGE,
-            recipients: [
-                (
-                    FundingStreamReceiver::Deferred,
-                    FundingStreamRecipient::new::<[&str; 0], &str>(12, []),
-                ),
-                (
-                    FundingStreamReceiver::MajorGrants,
-                    FundingStreamRecipient::new(8, POST_NU6_FUNDING_STREAM_FPF_ADDRESSES),
-                ),
-            ]
-            .into_iter()
-            .collect(),
-        },
-    ];
-
+    /// Funding streams for Mainnet. Empty on Ycash: post-Canopy subsidy is
+    /// delivered via the Ycash founders' reward through
+    /// [`YDF_MANDATE_END_HEIGHT`] rather than ECC/ZF/MG/FPF streams.
+    pub(crate) static ref FUNDING_STREAMS: Vec<FundingStreams> = Vec::new();
 }

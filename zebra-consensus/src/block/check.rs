@@ -13,7 +13,7 @@ use zebra_chain::{
     parameters::{
         subsidy::{
             founders_reward, founders_reward_address, funding_stream_values, FundingStreamReceiver,
-            ParameterSubsidy, SubsidyError,
+            SubsidyError,
         },
         Network, NetworkUpgrade,
     },
@@ -173,133 +173,98 @@ pub fn subsidy_is_valid(
         .cloned()
         .collect();
 
+    // Accepts both P2SH (pre-UPGRADE_YCASH legacy founder script) and P2PKH
+    // (post-UPGRADE_YCASH Ycash founder address) outputs. `Address::script()`
+    // emits the appropriate `scriptPubKey` for each.
     let mut has_amount = |addr: &Address, amount| {
-        assert!(addr.is_script_hash(), "address must be P2SH");
-
         coinbase_outputs.remove(&Output::new(amount, addr.script()))
     };
 
-    // # Note
+    // Ycash founders' reward window: heights 1..YDF_MANDATE_END_HEIGHT. The
+    // exact rule is split at UPGRADE_YCASH by `founders_reward` and
+    // `founders_reward_address`:
     //
-    // Canopy activation is at the first halving on Mainnet, but not on Testnet. [ZIP-1014] only
-    // applies to Mainnet; [ZIP-214] contains the specific rules for Testnet funding stream amount
-    // values.
+    // - Pre-UPGRADE_YCASH (heights 1..570_000 on Mainnet / 1..510_248 on
+    //   Testnet): 20% of the block subsidy, paid to one of the 48 legacy
+    //   Zcash founder P2SH addresses. Mirrors the Zcash pre-Canopy rule.
+    // - Post-UPGRADE_YCASH, before `ydf_mandate_end_height`: 5% of the block
+    //   subsidy, paid to one of the 48 Ycash founder addresses (typically
+    //   P2PKH). Ycash's replacement for Zcash's Canopy funding-stream swap.
     //
-    // [ZIP-1014]: <https://zips.z.cash/zip-1014>
-    // [ZIP-214]: <https://zips.z.cash/zip-0214
-    if NetworkUpgrade::current(net, height) < NetworkUpgrade::Canopy {
-        // # Consensus
-        //
-        // > [Pre-Canopy] A coinbase transaction at `height ∈ {1 .. FoundersRewardLastBlockHeight}`
-        // > MUST include at least one output that pays exactly `FoundersReward(height)` zatoshi
-        // > with a standard P2SH script of the form `OP_HASH160 FounderRedeemScriptHash(height)
-        // > OP_EQUAL` as its `scriptPubKey`.
-        //
-        // ## Notes
-        //
-        // - `FoundersRewardLastBlockHeight := max({height : N | Halving(height) < 1})`
-        //
-        // <https://zips.z.cash/protocol/protocol.pdf#foundersreward>
+    // After the YDF mandate end no founders' reward output is required.
+    //
+    // References:
+    // - <https://zips.z.cash/protocol/protocol.pdf#foundersreward>
+    // - `ycashd/src/main.cpp`, search for `UPGRADE_YCASH`
+    if Height::MIN < height && height < net.ydf_mandate_end_height() {
+        let addr = founders_reward_address(net, height).ok_or(BlockError::Other(format!(
+            "founders reward address must be defined for height: {height:?}"
+        )))?;
 
-        if Height::MIN < height && height < net.height_for_first_halving() {
-            let addr = founders_reward_address(net, height).ok_or(BlockError::Other(format!(
-                "founders reward address must be defined for height: {height:?}"
-            )))?;
+        if !has_amount(&addr, founders_reward(net, height)) {
+            Err(SubsidyError::FoundersRewardNotFound)?;
+        }
+    }
 
-            if !has_amount(&addr, founders_reward(net, height)) {
-                Err(SubsidyError::FoundersRewardNotFound)?;
-            }
+    // Funding streams and NU6.1 lockbox disbursements. Ycash has no funding
+    // streams and never activates NU6.1 on Mainnet or the default Testnet, so
+    // both of the loops below iterate over empty sets by default. They remain
+    // in place to handle custom testnets that configure either feature.
+    //
+    // References:
+    // - <https://zips.z.cash/protocol/protocol.pdf#fundingstreams>
+    // - [ZIP-271]: <https://zips.z.cash/zip-0271>
+    // - [ZIP-1016]: <https://zips.z.cash/zip-101>
+
+    let mut funding_streams = funding_stream_values(height, net, expected_block_subsidy)?;
+
+    // The deferred pool contribution is checked in `miner_fees_are_valid()` according to
+    // [ZIP-1015](https://zips.z.cash/zip-1015).
+    let mut deferred_pool_balance_change = funding_streams
+        .remove(&FundingStreamReceiver::Deferred)
+        .unwrap_or_default()
+        .constrain::<NegativeAllowed>()?;
+
+    if Some(height) == NetworkUpgrade::Nu6_1.activation_height(net) {
+        let lockbox_disbursements = net.lockbox_disbursements(height);
+
+        if lockbox_disbursements.is_empty() {
+            Err(BlockError::Other(
+                "missing lockbox disbursements for NU6.1 activation block".to_string(),
+            ))?;
         }
 
-        Ok(DeferredPoolBalanceChange::zero())
-    } else {
-        // # Consensus
-        //
-        // > [Canopy onward] In each block with coinbase transaction `cb` at block height `height`,
-        // > `cb` MUST contain at least the given number of distinct outputs for each of the
-        // > following:
-        //
-        // > • for each funding stream `fs` active at that block height with a recipient identifier
-        // > other than `DEFERRED_POOL` given by `fs.Recipient(height)`, one output that pays
-        // > `fs.Value(height)` zatoshi in the prescribed way to the address represented by that
-        // > recipient identifier;
-        //
-        // > • [NU6.1 onward] if the block height is `ZIP271ActivationHeight`,
-        // > `ZIP271DisbursementChunks` equal outputs paying a total of `ZIP271DisbursementAmount`
-        // > zatoshi in the prescribed way to the Key-Holder Organizations’ P2SH multisig address
-        // > represented by `ZIP271DisbursementAddress`, as specified by [ZIP-271].
-        //
-        // > The term “prescribed way” is defined as follows:
-        //
-        // > The prescribed way to pay a transparent P2SH address is to use a standard P2SH script
-        // > of the form `OP_HASH160 fs.RedeemScriptHash(height) OP_EQUAL` as the `scriptPubKey`.
-        // > Here `fs.RedeemScriptHash(height)` is the standard redeem script hash for the recipient
-        // > address for `fs.Recipient(height)` in _Base58Check_ form. Standard redeem script hashes
-        // > are defined in [ZIP-48] for P2SH multisig addresses, or [Bitcoin-P2SH] for other P2SH
-        // > addresses.
-        //
-        // <https://zips.z.cash/protocol/protocol.pdf#fundingstreams>
-        //
-        // [ZIP-271]: <https://zips.z.cash/zip-0271>
-        // [ZIP-48]: <https://zips.z.cash/zip-0048>
-        // [Bitcoin-P2SH]: <https://developer.bitcoin.org/devguide/transactions.html#pay-to-script-hash-p2sh>
-
-        let mut funding_streams = funding_stream_values(height, net, expected_block_subsidy)?;
-
-        // The deferred pool contribution is checked in `miner_fees_are_valid()` according to
-        // [ZIP-1015](https://zips.z.cash/zip-1015).
-        let mut deferred_pool_balance_change = funding_streams
-            .remove(&FundingStreamReceiver::Deferred)
-            .unwrap_or_default()
-            .constrain::<NegativeAllowed>()?;
-
-        // Check the one-time lockbox disbursements in the NU6.1 activation block's coinbase tx
-        // according to [ZIP-271] and [ZIP-1016].
-        //
-        // [ZIP-271]: <https://zips.z.cash/zip-0271>
-        // [ZIP-1016]: <https://zips.z.cash/zip-101>
-        if Some(height) == NetworkUpgrade::Nu6_1.activation_height(net) {
-            let lockbox_disbursements = net.lockbox_disbursements(height);
-
-            if lockbox_disbursements.is_empty() {
-                Err(BlockError::Other(
-                    "missing lockbox disbursements for NU6.1 activation block".to_string(),
-                ))?;
-            }
-
-            deferred_pool_balance_change = lockbox_disbursements.into_iter().try_fold(
-                deferred_pool_balance_change,
-                |balance, (addr, expected_amount)| {
-                    if !has_amount(&addr, expected_amount) {
-                        Err(SubsidyError::OneTimeLockboxDisbursementNotFound)?;
-                    }
-
-                    balance
-                        .checked_sub(expected_amount)
-                        .ok_or(SubsidyError::Underflow)
-                },
-            )?;
-        };
-
-        // Check each funding stream output.
-        funding_streams.into_iter().try_for_each(
-            |(receiver, expected_amount)| -> Result<(), BlockError> {
-                let addr =
-                    funding_stream_address(height, net, receiver).ok_or(BlockError::Other(
-                        "A funding stream other than the deferred pool must have an address"
-                            .to_string(),
-                    ))?;
-
-                if !has_amount(addr, expected_amount) {
-                    Err(SubsidyError::FundingStreamNotFound)?;
+        deferred_pool_balance_change = lockbox_disbursements.into_iter().try_fold(
+            deferred_pool_balance_change,
+            |balance, (addr, expected_amount)| {
+                if !has_amount(&addr, expected_amount) {
+                    Err(SubsidyError::OneTimeLockboxDisbursementNotFound)?;
                 }
 
-                Ok(())
+                balance
+                    .checked_sub(expected_amount)
+                    .ok_or(SubsidyError::Underflow)
             },
         )?;
+    };
 
-        Ok(DeferredPoolBalanceChange::new(deferred_pool_balance_change))
-    }
+    funding_streams.into_iter().try_for_each(
+        |(receiver, expected_amount)| -> Result<(), BlockError> {
+            let addr =
+                funding_stream_address(height, net, receiver).ok_or(BlockError::Other(
+                    "A funding stream other than the deferred pool must have an address"
+                        .to_string(),
+                ))?;
+
+            if !has_amount(addr, expected_amount) {
+                Err(SubsidyError::FundingStreamNotFound)?;
+            }
+
+            Ok(())
+        },
+    )?;
+
+    Ok(DeferredPoolBalanceChange::new(deferred_pool_balance_change))
 }
 
 /// Returns `Ok(())` if the miner fees consensus rule is valid.
