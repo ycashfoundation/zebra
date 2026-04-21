@@ -29,6 +29,13 @@ pub mod magics {
 }
 
 /// The block heights at which network upgrades activate.
+///
+/// These are Ycash activation heights. Overwinter and Sapling are unchanged
+/// from Zcash (Ycash inherited the pre-fork chain). UPGRADE_YCASH is a
+/// Ycash-only chain fork. Blossom/Heartwood/Canopy activated at different
+/// heights on Ycash than on Zcash. NU5 and later are never activated on
+/// Ycash — absence from the activation list is the `NO_ACTIVATION_HEIGHT`
+/// representation.
 pub mod activation_heights {
     /// Network upgrade activation heights for Testnet.
     pub mod testnet {
@@ -40,18 +47,14 @@ pub mod activation_heights {
         pub const OVERWINTER: Height = Height(207_500);
         /// The block height at which `Sapling` activates on Testnet.
         pub const SAPLING: Height = Height(280_000);
+        /// The block height at which the Ycash chain-fork upgrade activates on Testnet.
+        pub const YCASH: Height = Height(510_248);
         /// The block height at which `Blossom` activates on Testnet.
-        pub const BLOSSOM: Height = Height(584_000);
+        pub const BLOSSOM: Height = Height(661_610);
         /// The block height at which `Heartwood` activates on Testnet.
-        pub const HEARTWOOD: Height = Height(903_800);
+        pub const HEARTWOOD: Height = Height(661_622);
         /// The block height at which `Canopy` activates on Testnet.
-        pub const CANOPY: Height = Height(1_028_500);
-        /// The block height at which `NU5` activates on Testnet.
-        pub const NU5: Height = Height(1_842_420);
-        /// The block height at which `NU6` activates on Testnet.
-        pub const NU6: Height = Height(2_976_000);
-        /// The block height at which `NU6.1` activates on Testnet.
-        pub const NU6_1: Height = Height(3_536_500);
+        pub const CANOPY: Height = Height(661_634);
     }
 
     /// Network upgrade activation heights for Mainnet.
@@ -64,17 +67,13 @@ pub mod activation_heights {
         pub const OVERWINTER: Height = Height(347_500);
         /// The block height at which `Sapling` activates on Mainnet.
         pub const SAPLING: Height = Height(419_200);
+        /// The block height at which the Ycash chain-fork upgrade activates on Mainnet.
+        pub const YCASH: Height = Height(570_000);
         /// The block height at which `Blossom` activates on Mainnet.
-        pub const BLOSSOM: Height = Height(653_600);
+        pub const BLOSSOM: Height = Height(1_100_000);
         /// The block height at which `Heartwood` activates on Mainnet.
-        pub const HEARTWOOD: Height = Height(903_000);
+        pub const HEARTWOOD: Height = Height(1_100_003);
         /// The block height at which `Canopy` activates on Mainnet.
-        pub const CANOPY: Height = Height(1_046_400);
-        /// The block height at which `NU5` activates on Mainnet.
-        pub const NU5: Height = Height(1_687_104);
-        /// The block height at which `NU6` activates on Mainnet.
-        pub const NU6: Height = Height(2_726_400);
-        /// The block height at which `NU6.1` activates on Mainnet.
-        pub const NU6_1: Height = Height(3_146_400);
+        pub const CANOPY: Height = Height(1_100_006);
     }
 }

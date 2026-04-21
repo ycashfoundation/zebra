@@ -264,6 +264,7 @@ const NETWORK_UPGRADES_IN_ORDER: &[NetworkUpgrade] = &[
     BeforeOverwinter,
     Overwinter,
     Sapling,
+    Ycash,
     Blossom,
     Heartwood,
     Canopy,
@@ -287,6 +288,18 @@ fn full_activation_list_contains_all_upgrades() {
     let network = Network::Mainnet;
     let full_list = network.full_activation_list();
 
-    // NU7 is only included in tests; on Mainnet, NU7 isn’t live yet, so we subtract 1 here.
-    assert_eq!(full_list.len(), NetworkUpgrade::iter().count() - 1);
+    // Ycash activates through Canopy and never activates NU5+. The `full_list`
+    // therefore contains Genesis, BeforeOverwinter, Overwinter, Sapling, Ycash,
+    // Blossom, Heartwood, Canopy — 8 upgrades.
+    let expected_active_upgrades = [
+        Genesis,
+        BeforeOverwinter,
+        Overwinter,
+        Sapling,
+        Ycash,
+        Blossom,
+        Heartwood,
+        Canopy,
+    ];
+    assert_eq!(full_list.len(), expected_active_upgrades.len());
 }

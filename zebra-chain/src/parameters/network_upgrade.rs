@@ -107,12 +107,10 @@ pub(super) const MAINNET_ACTIVATION_HEIGHTS: &[(block::Height, NetworkUpgrade)] 
         (BEFORE_OVERWINTER, BeforeOverwinter),
         (OVERWINTER, Overwinter),
         (SAPLING, Sapling),
+        (YCASH, Ycash),
         (BLOSSOM, Blossom),
         (HEARTWOOD, Heartwood),
         (CANOPY, Canopy),
-        (NU5, Nu5),
-        (NU6, Nu6),
-        (NU6_1, Nu6_1),
     ]
 };
 /// Testnet network upgrade activation heights.
@@ -132,12 +130,10 @@ pub(super) const TESTNET_ACTIVATION_HEIGHTS: &[(block::Height, NetworkUpgrade)] 
         (BEFORE_OVERWINTER, BeforeOverwinter),
         (OVERWINTER, Overwinter),
         (SAPLING, Sapling),
+        (YCASH, Ycash),
         (BLOSSOM, Blossom),
         (HEARTWOOD, Heartwood),
         (CANOPY, Canopy),
-        (NU5, Nu5),
-        (NU6, Nu6),
-        (NU6_1, Nu6_1),
     ]
 };
 
