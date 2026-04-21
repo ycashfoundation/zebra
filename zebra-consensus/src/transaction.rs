@@ -861,6 +861,7 @@ where
             // Note: Here we verify the transaction version number of the above two rules, the group
             // id is checked in zebra-chain crate, in the transaction serialize.
             NetworkUpgrade::Sapling
+            | NetworkUpgrade::Ycash
             | NetworkUpgrade::Blossom
             | NetworkUpgrade::Heartwood
             | NetworkUpgrade::Canopy
@@ -960,6 +961,7 @@ where
             | NetworkUpgrade::BeforeOverwinter
             | NetworkUpgrade::Overwinter
             | NetworkUpgrade::Sapling
+            | NetworkUpgrade::Ycash
             | NetworkUpgrade::Blossom
             | NetworkUpgrade::Heartwood
             | NetworkUpgrade::Canopy => Err(TransactionError::UnsupportedByNetworkUpgrade(
