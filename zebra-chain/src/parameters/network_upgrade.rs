@@ -216,14 +216,19 @@ impl TryFrom<ConsensusBranchId> for zcash_protocol::consensus::BranchId {
 /// Branch ids were introduced in the Overwinter upgrade, so there are no
 /// Genesis or BeforeOverwinter branch ids.
 ///
+/// On Ycash, Blossom/Heartwood/Canopy use the YBlossom/YHeartwood/YCanopy
+/// branch ids defined by ycashd (distinct from Zcash's values) to provide
+/// two-way replay protection across the fork.
+///
 /// This is actually a bijective map, but it is const, so we use a vector, and
 /// do the uniqueness check in the unit tests.
 pub(crate) const CONSENSUS_BRANCH_IDS: &[(NetworkUpgrade, ConsensusBranchId)] = &[
     (Overwinter, ConsensusBranchId(0x5ba81b19)),
     (Sapling, ConsensusBranchId(0x76b809bb)),
-    (Blossom, ConsensusBranchId(0x2bb40e60)),
-    (Heartwood, ConsensusBranchId(0xf5b9230b)),
-    (Canopy, ConsensusBranchId(0xe9ff75a6)),
+    (Ycash, ConsensusBranchId(0x374d_694f)),
+    (Blossom, ConsensusBranchId(0x8e47_1bd6)),
+    (Heartwood, ConsensusBranchId(0x6631_4da3)),
+    (Canopy, ConsensusBranchId(0x19bd_2d2f)),
     (Nu5, ConsensusBranchId(0xc2d6d0b4)),
     (Nu6, ConsensusBranchId(0xc8e71055)),
     (Nu6_1, ConsensusBranchId(0x4dec4df0)),
