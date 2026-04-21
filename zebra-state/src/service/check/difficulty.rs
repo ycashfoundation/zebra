@@ -183,9 +183,19 @@ impl AdjustedDifficulty {
     /// `difficulty_threshold`s and `time`s from the previous
     /// `PoWAveragingWindow + PoWMedianBlockSpan` (28) blocks in the relevant chain.
     ///
-    /// Implements `ThresholdBits` from the Zcash specification, and the Testnet
-    /// minimum difficulty adjustment from ZIPs 205 and 208.
+    /// Implements `ThresholdBits` from the Zcash specification, the Testnet
+    /// minimum difficulty adjustment from ZIPs 205 and 208, and the Ycash
+    /// fork-activation difficulty rules (`minDifficultyAtYcashFork` on testnet,
+    /// `scaledDifficultyAtYcashFork` on mainnet) from `ycashd/src/pow.cpp`.
     pub fn expected_difficulty_threshold(&self) -> CompactDifficulty {
+        if self.is_ycash_testnet_fork_reset_window() {
+            return self.network.target_difficulty_limit().to_compact();
+        }
+
+        if let Some(scaled) = self.ycash_mainnet_fork_scaled_difficulty() {
+            return scaled;
+        }
+
         if NetworkUpgrade::is_testnet_min_difficulty_block(
             &self.network,
             self.candidate_height,
@@ -200,6 +210,76 @@ impl AdjustedDifficulty {
         } else {
             self.threshold_bits()
         }
+    }
+
+    /// Returns true if the candidate block lies in the Ycash testnet fork
+    /// window `[UPGRADE_YCASH, UPGRADE_YCASH + PoWAveragingWindow]` (18
+    /// blocks inclusive).
+    ///
+    /// Mirrors `minDifficultyAtYcashFork` from ycashd. Intentionally excludes
+    /// Regtest, where ycashd sets the flag to false.
+    fn is_ycash_testnet_fork_reset_window(&self) -> bool {
+        let is_ycash_testnet = match &self.network {
+            Network::Mainnet => false,
+            Network::Testnet(params) => !params.is_regtest(),
+        };
+        if !is_ycash_testnet {
+            return false;
+        }
+
+        let Some(ycash_height) = NetworkUpgrade::Ycash.activation_height(&self.network) else {
+            return false;
+        };
+
+        let window_end_u32 =
+            u32::from(ycash_height).saturating_add(POW_AVERAGING_WINDOW as u32);
+        let candidate = u32::from(self.candidate_height);
+        let start = u32::from(ycash_height);
+
+        candidate >= start && candidate <= window_end_u32
+    }
+
+    /// Returns the scaled Ycash mainnet fork difficulty for the candidate
+    /// block if it falls in `[UPGRADE_YCASH, UPGRADE_YCASH + PoWAveragingWindow)`
+    /// (17 blocks, half-open) on mainnet.
+    ///
+    /// Mirrors `scaledDifficultyAtYcashFork` from ycashd: ramps the target
+    /// down based on how long since the previous block was mined, capped at
+    /// the PoW limit. Returns `None` if the rule does not apply (wrong
+    /// network, outside the window, or block-time gap below the smallest
+    /// threshold — in which case the normal difficulty calculation applies).
+    fn ycash_mainnet_fork_scaled_difficulty(&self) -> Option<CompactDifficulty> {
+        if !matches!(&self.network, Network::Mainnet) {
+            return None;
+        }
+
+        let ycash_height = NetworkUpgrade::Ycash.activation_height(&self.network)?;
+
+        let candidate = u32::from(self.candidate_height);
+        let start = u32::from(ycash_height);
+        let window_end = start.saturating_add(POW_AVERAGING_WINDOW as u32);
+        if candidate < start || candidate >= window_end {
+            return None;
+        }
+
+        let target_spacing = NetworkUpgrade::target_spacing_for_height(
+            &self.network,
+            self.candidate_height,
+        );
+        let time_gap = self.candidate_time - *self.relevant_times.first();
+        let pow_limit = self.network.target_difficulty_limit();
+
+        let multiplier: u64 = if time_gap > target_spacing * 12 {
+            64
+        } else if time_gap > target_spacing * 6 {
+            128
+        } else if time_gap > target_spacing * 2 {
+            256
+        } else {
+            return None;
+        };
+
+        Some((pow_limit / multiplier).to_compact())
     }
 
     /// Calculate the `difficulty_threshold` for a candidate block, based on the
