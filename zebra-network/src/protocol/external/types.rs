@@ -96,6 +96,10 @@ impl Version {
             (Testnet(params), Sapling) if params.is_default_testnet() => 170_007,
             (Testnet(params), Sapling) if params.is_regtest() => 170_006,
             (Mainnet, Sapling) => 170_007,
+            (Testnet(params), Ycash) if params.is_default_testnet() || params.is_regtest() => {
+                270_007
+            }
+            (Mainnet, Ycash) => 270_007,
             (Testnet(params), Blossom) if params.is_default_testnet() || params.is_regtest() => {
                 170_008
             }
