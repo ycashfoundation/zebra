@@ -809,8 +809,10 @@ async fn hard_coded_mainnet() -> Result<(), Report> {
         checkpoint_verifier.target_checkpoint_height(),
         WaitingForBlocks
     );
-    // The lists will get bigger over time, so we just pick a recent height
-    assert!(checkpoint_verifier.checkpoint_list.max_height() > block::Height(900_000));
+    // On Ycash the mainnet list is truncated at the UPGRADE_YCASH activation
+    // block (height 570000) and will stay there until post-fork densification
+    // (Milestone 5). Assert it covers the fork.
+    assert!(checkpoint_verifier.checkpoint_list.max_height() >= block::Height(570_000));
 
     Ok(())
 }
