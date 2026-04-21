@@ -238,9 +238,9 @@ impl Network {
     /// Get the default port associated to this network.
     pub fn default_port(&self) -> u16 {
         match self {
-            Network::Mainnet => 8233,
-            // TODO: Add a `default_port` field to `testnet::Parameters` to return here. (zcashd uses 18344 for Regtest)
-            Network::Testnet(_params) => 18233,
+            Network::Mainnet => 8833,
+            // TODO: Add a `default_port` field to `testnet::Parameters` to return here. (zcashd-ycash uses 18344 for Regtest)
+            Network::Testnet(_params) => 18833,
         }
     }
 
