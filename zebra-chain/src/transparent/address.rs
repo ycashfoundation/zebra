@@ -195,26 +195,35 @@ impl ZcashDeserialize for Address {
         let mut hash_bytes = [0; 20];
         reader.read_exact(&mut hash_bytes)?;
 
+        // Accept both Ycash-native and legacy Zcash base58 prefixes on the
+        // corresponding network. ycashd keeps the Zcash prefixes valid (as
+        // `LEGACY_*`) for pre-UPGRADE_YCASH block validation and address
+        // round-tripping, so we mirror that here. Serialization always emits
+        // the Ycash-native prefix via `NetworkKind::b58_*_address_prefix()`.
         match version_bytes {
-            zcash_protocol::constants::mainnet::B58_SCRIPT_ADDRESS_PREFIX => {
+            zcash_protocol::constants::ycash_mainnet::B58_SCRIPT_ADDRESS_PREFIX
+            | zcash_protocol::constants::mainnet::B58_SCRIPT_ADDRESS_PREFIX => {
                 Ok(Address::PayToScriptHash {
                     network_kind: NetworkKind::Mainnet,
                     script_hash: hash_bytes,
                 })
             }
-            zcash_protocol::constants::testnet::B58_SCRIPT_ADDRESS_PREFIX => {
+            zcash_protocol::constants::ycash_testnet::B58_SCRIPT_ADDRESS_PREFIX
+            | zcash_protocol::constants::testnet::B58_SCRIPT_ADDRESS_PREFIX => {
                 Ok(Address::PayToScriptHash {
                     network_kind: NetworkKind::Testnet,
                     script_hash: hash_bytes,
                 })
             }
-            zcash_protocol::constants::mainnet::B58_PUBKEY_ADDRESS_PREFIX => {
+            zcash_protocol::constants::ycash_mainnet::B58_PUBKEY_ADDRESS_PREFIX
+            | zcash_protocol::constants::mainnet::B58_PUBKEY_ADDRESS_PREFIX => {
                 Ok(Address::PayToPublicKeyHash {
                     network_kind: NetworkKind::Mainnet,
                     pub_key_hash: hash_bytes,
                 })
             }
-            zcash_protocol::constants::testnet::B58_PUBKEY_ADDRESS_PREFIX => {
+            zcash_protocol::constants::ycash_testnet::B58_PUBKEY_ADDRESS_PREFIX
+            | zcash_protocol::constants::testnet::B58_PUBKEY_ADDRESS_PREFIX => {
                 Ok(Address::PayToPublicKeyHash {
                     network_kind: NetworkKind::Testnet,
                     pub_key_hash: hash_bytes,
