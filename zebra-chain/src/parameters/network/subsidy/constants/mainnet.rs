@@ -3,7 +3,6 @@
 use lazy_static::lazy_static;
 
 use crate::parameters::{
-    constants::activation_heights,
     network::{Amount, Height, NonNegative},
     subsidy::{
         constants::POST_NU6_FUNDING_STREAM_NUM_BLOCKS, FundingStreamReceiver,
@@ -174,10 +173,14 @@ pub(crate) const POST_NU6_FUNDING_STREAM_FPF_ADDRESSES: [&str;
 /// In the spec ([protocol specification §7.10][7.10]) this is defined as: `fs.addressindex(fs.endheight - 1)`
 /// however we know this value beforehand so we prefer to make it a constant instead.
 ///
+/// Unused on Ycash: NU6.1 never activates. Retained for upstream-merge fidelity.
+///
 /// [7.10]: https://zips.z.cash/protocol/protocol.pdf#fundingstreams
+#[allow(dead_code)]
 pub(crate) const POST_NU6_1_FUNDING_STREAMS_NUM_ADDRESSES: usize = 36;
 
 /// List of addresses for the Major Grants post-NU6.1 funding stream on Mainnet administered by the Financial Privacy Fund (FPF).
+#[allow(dead_code)]
 pub(crate) const POST_NU6_1_FUNDING_STREAM_FPF_ADDRESSES: [&str;
     POST_NU6_1_FUNDING_STREAMS_NUM_ADDRESSES] =
     ["t3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow"; POST_NU6_1_FUNDING_STREAMS_NUM_ADDRESSES];
@@ -219,22 +222,6 @@ lazy_static! {
                 (
                     FundingStreamReceiver::MajorGrants,
                     FundingStreamRecipient::new(8, POST_NU6_FUNDING_STREAM_FPF_ADDRESSES),
-                ),
-            ]
-            .into_iter()
-            .collect(),
-        },
-
-        FundingStreams {
-            height_range: activation_heights::mainnet::NU6_1..Height(4_406_400),
-            recipients: [
-                (
-                    FundingStreamReceiver::Deferred,
-                    FundingStreamRecipient::new::<[&str; 0], &str>(12, []),
-                ),
-                (
-                    FundingStreamReceiver::MajorGrants,
-                    FundingStreamRecipient::new(8, POST_NU6_1_FUNDING_STREAM_FPF_ADDRESSES),
                 ),
             ]
             .into_iter()

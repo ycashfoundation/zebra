@@ -3,7 +3,6 @@
 use lazy_static::lazy_static;
 
 use crate::parameters::{
-    constants::activation_heights,
     network::{Amount, Height, NonNegative},
     subsidy::{
         constants::POST_NU6_FUNDING_STREAM_NUM_BLOCKS, FundingStreamReceiver,
@@ -179,7 +178,10 @@ pub(crate) const POST_NU6_FUNDING_STREAMS_NUM_ADDRESSES: usize = 13;
 /// There are 27 funding stream periods across the 939,500 blocks for which the post-NU6.1 funding streams are
 /// active. See Testnet funding streams in revision 2 of <https://zips.z.cash/zip-0214#funding-streams>.
 ///
+/// Unused on Ycash: NU6.1 never activates. Retained for upstream-merge fidelity.
+///
 /// [7.10]: https://zips.z.cash/protocol/protocol.pdf#fundingstreams
+#[allow(dead_code)]
 pub(crate) const POST_NU6_1_FUNDING_STREAMS_NUM_ADDRESSES: usize = 27;
 
 /// List of addresses for the Major Grants post-NU6 funding stream on Testnet administered by the Financial Privacy Fund (FPF).
@@ -188,6 +190,7 @@ pub(crate) const POST_NU6_FUNDING_STREAM_FPF_ADDRESSES: [&str;
     ["t2HifwjUj9uyxr9bknR8LFuQbc98c3vkXtu"; POST_NU6_FUNDING_STREAMS_NUM_ADDRESSES];
 
 /// List of addresses for the Major Grants post-NU6.1 funding stream on Testnet administered by the Financial Privacy Fund (FPF).
+#[allow(dead_code)]
 pub(crate) const POST_NU6_1_FUNDING_STREAM_FPF_ADDRESSES: [&str;
     POST_NU6_1_FUNDING_STREAMS_NUM_ADDRESSES] =
     ["t2HifwjUj9uyxr9bknR8LFuQbc98c3vkXtu"; POST_NU6_1_FUNDING_STREAMS_NUM_ADDRESSES];
@@ -229,21 +232,6 @@ lazy_static! {
                 (
                     FundingStreamReceiver::MajorGrants,
                     FundingStreamRecipient::new(8, POST_NU6_FUNDING_STREAM_FPF_ADDRESSES),
-                ),
-            ]
-            .into_iter()
-            .collect(),
-        },
-        FundingStreams {
-            height_range: activation_heights::testnet::NU6_1..Height(4_476_000),
-            recipients: [
-                (
-                    FundingStreamReceiver::Deferred,
-                    FundingStreamRecipient::new::<[&str; 0], &str>(12, []),
-                ),
-                (
-                    FundingStreamReceiver::MajorGrants,
-                    FundingStreamRecipient::new(8, POST_NU6_1_FUNDING_STREAM_FPF_ADDRESSES),
                 ),
             ]
             .into_iter()
