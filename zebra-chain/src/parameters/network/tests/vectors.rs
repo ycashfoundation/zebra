@@ -7,7 +7,10 @@ use crate::{
     block::Height,
     parameters::{
         network::error::ParametersBuilderError,
-        subsidy::{self, block_subsidy, funding_stream_values, FundingStreamReceiver},
+        subsidy::{
+            self, block_subsidy, founders_reward_address, funding_stream_values,
+            FundingStreamReceiver,
+        },
         testnet::{
             self, ConfiguredActivationHeights, ConfiguredFundingStreamRecipient,
             ConfiguredFundingStreams, ConfiguredLockboxDisbursement, RegtestParameters,
@@ -163,6 +166,75 @@ fn activates_network_upgrades_correctly() {
             network.activation_list(),
             expected_activation_heights.iter().cloned().collect(),
             "network activation list should match expected activation heights"
+        );
+    }
+}
+
+/// Checks that the founders' reward address displayed prefix switches at
+/// `UPGRADE_YCASH` on both Mainnet and the default Testnet, matches the
+/// expected Ycash base58 prefixes pre- and post-fork, and vanishes at
+/// `YDF_MANDATE_END_HEIGHT`.
+///
+/// This encodes the address-prefix-at-UPGRADE_YCASH boundary rule. It is a
+/// consequence of (a) `founders_reward_address` dispatching on height and
+/// selecting different address lists, and (b) `NetworkKind::b58_*_prefix()`
+/// emitting Ycash prefixes on output (Milestone 2). No separate consensus
+/// enforcement path is required — there is no such rule in ycashd beyond the
+/// founders' reward script check itself.
+#[test]
+fn founders_reward_address_prefix_switches_at_upgrade_ycash() {
+    for (network, ydf_end) in [
+        (Network::Mainnet, subsidy::constants::mainnet::YDF_MANDATE_END_HEIGHT),
+        (
+            Network::new_default_testnet(),
+            subsidy::constants::testnet::YDF_MANDATE_END_HEIGHT,
+        ),
+    ] {
+        let ycash_activation = NetworkUpgrade::Ycash
+            .activation_height(&network)
+            .expect("Ycash activates on Mainnet and the default Testnet");
+
+        // Pre-fork: address is selected from the legacy Zcash founders list
+        // (P2SH), re-encoded with the network's Ycash base58 script prefix.
+        let pre_fork_height = ycash_activation.previous().unwrap();
+        let pre_fork_addr = founders_reward_address(&network, pre_fork_height)
+            .expect("pre-fork founders' reward address is defined");
+        assert!(
+            pre_fork_addr.is_script_hash(),
+            "pre-UPGRADE_YCASH founders' reward address must be P2SH on {network:?}"
+        );
+        let (expected_pre_prefix, _) = match network {
+            Network::Mainnet => ("s3", "s1"),
+            Network::Testnet(_) => ("s2", "sm"),
+        };
+        assert!(
+            pre_fork_addr.to_string().starts_with(expected_pre_prefix),
+            "pre-fork address on {network:?} should start with {expected_pre_prefix}, got {pre_fork_addr}"
+        );
+
+        // At/after UPGRADE_YCASH (but before YDF mandate end): address comes
+        // from YCASH_FOUNDER_ADDRESS_LIST (P2PKH on Ycash) and displays with
+        // the Ycash public-key base58 prefix.
+        let post_fork_addr = founders_reward_address(&network, ycash_activation)
+            .expect("post-fork founders' reward address is defined at UPGRADE_YCASH");
+        assert!(
+            !post_fork_addr.is_script_hash(),
+            "post-UPGRADE_YCASH founders' reward address must be P2PKH on {network:?}"
+        );
+        let (_, expected_post_prefix) = match network {
+            Network::Mainnet => ("s3", "s1"),
+            Network::Testnet(_) => ("s2", "sm"),
+        };
+        assert!(
+            post_fork_addr.to_string().starts_with(expected_post_prefix),
+            "post-fork address on {network:?} should start with {expected_post_prefix}, got {post_fork_addr}"
+        );
+
+        // At YDF mandate end, no founders' reward address is defined.
+        assert_eq!(
+            founders_reward_address(&network, Height(ydf_end)),
+            None,
+            "at or after YDF_MANDATE_END_HEIGHT there is no founders' reward on {network:?}"
         );
     }
 }
