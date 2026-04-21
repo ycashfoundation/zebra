@@ -96,22 +96,25 @@ impl Version {
             (Testnet(params), Sapling) if params.is_default_testnet() => 170_007,
             (Testnet(params), Sapling) if params.is_regtest() => 170_006,
             (Mainnet, Sapling) => 170_007,
+            // Ycash jumps the protocol version series from 170xxx to 270xxx at
+            // UPGRADE_YCASH, and the subsequent Blossom/Heartwood/Canopy
+            // activations on Ycash also use 270xxx. See `ycashd/src/chainparams.cpp`.
             (Testnet(params), Ycash) if params.is_default_testnet() || params.is_regtest() => {
                 270_007
             }
             (Mainnet, Ycash) => 270_007,
             (Testnet(params), Blossom) if params.is_default_testnet() || params.is_regtest() => {
-                170_008
+                270_008
             }
-            (Mainnet, Blossom) => 170_009,
+            (Mainnet, Blossom) => 270_009,
             (Testnet(params), Heartwood) if params.is_default_testnet() || params.is_regtest() => {
-                170_010
+                270_010
             }
-            (Mainnet, Heartwood) => 170_011,
+            (Mainnet, Heartwood) => 270_011,
             (Testnet(params), Canopy) if params.is_default_testnet() || params.is_regtest() => {
-                170_012
+                270_012
             }
-            (Mainnet, Canopy) => 170_013,
+            (Mainnet, Canopy) => 270_013,
             (Testnet(params), Nu5) if params.is_default_testnet() || params.is_regtest() => 170_050,
             (Mainnet, Nu5) => 170_100,
             (Testnet(params), Nu6) if params.is_default_testnet() || params.is_regtest() => 170_110,

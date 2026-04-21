@@ -335,15 +335,13 @@ pub const TIMESTAMP_TRUNCATION_SECONDS: u32 = 30 * 60;
 /// The current protocol version is checked by our peers. If it is too old,
 /// newer peers will disconnect from us.
 ///
-/// The current protocol version typically changes before Mainnet and Testnet
-/// network upgrades.
-///
-/// This version of Zebra draws the current network protocol version from
-/// [ZIP-255](https://zips.z.cash/zip-0255).
-// TODO: Update this constant to the correct value after NU7 activation (see NU deployment ZIPs),
-pub const CURRENT_NETWORK_PROTOCOL_VERSION: Version = Version(170_140);
-// pub const CURRENT_NETWORK_PROTOCOL_VERSION: Version = Version(170_150); // NU7 Testnet.
-// pub const CURRENT_NETWORK_PROTOCOL_VERSION: Version = Version(170_160); // NU7 Mainnet.
+/// Ycash jumps into the 270xxx range at UPGRADE_YCASH (see `ycashd/src/version.h`
+/// and `chainparams.cpp`): UPGRADE_YCASH = 270007, Blossom = 270009, Heartwood =
+/// 270011, Canopy = 270013. Canopy is the latest upgrade active on Ycash mainnet
+/// today, and is the `PROTOCOL_VERSION` ycashd stamps into `getblocks`/`getheaders`
+/// message headers — so our codec must be configured to the same value to parse
+/// them cleanly.
+pub const CURRENT_NETWORK_PROTOCOL_VERSION: Version = Version(270_013);
 
 /// The default RTT estimate for peer responses.
 ///
@@ -405,15 +403,15 @@ lazy_static! {
     /// If peer versions are too old, we will disconnect from them.
     ///
     /// The minimum network protocol version typically changes after Mainnet and
-    /// Testnet network upgrades.
-    // TODO: Change `Nu6` to `Nu7` after NU7 activation.
-    // TODO: Move the value here to a field on `testnet::Parameters` (#8367)
+    /// Testnet network upgrades. For yolk, the current network upgrade is Ycash on
+    /// both Mainnet and Testnet; later Zcash upgrades (NU5/NU6/NU6.1/NU7) never
+    /// activate on Ycash.
     pub static ref INITIAL_MIN_NETWORK_PROTOCOL_VERSION: HashMap<NetworkKind, Version> = {
         let mut hash_map = HashMap::new();
 
-        hash_map.insert(NetworkKind::Mainnet, Version::min_specified_for_upgrade(&Mainnet, Nu6));
-        hash_map.insert(NetworkKind::Testnet, Version::min_specified_for_upgrade(&Network::new_default_testnet(), Nu6));
-        hash_map.insert(NetworkKind::Regtest, Version::min_specified_for_upgrade(&Network::new_regtest(Default::default()), Nu6));
+        hash_map.insert(NetworkKind::Mainnet, Version::min_specified_for_upgrade(&Mainnet, Ycash));
+        hash_map.insert(NetworkKind::Testnet, Version::min_specified_for_upgrade(&Network::new_default_testnet(), Ycash));
+        hash_map.insert(NetworkKind::Regtest, Version::min_specified_for_upgrade(&Network::new_regtest(Default::default()), Ycash));
 
         hash_map
     };
