@@ -402,7 +402,7 @@ pub fn init_checkpoint_list(config: Config, network: &Network) -> (Arc<Checkpoin
         list.max_height()
     } else {
         list.min_height_in_range(network.mandatory_checkpoint_height()..)
-            .expect("hardcoded checkpoint list extends past canopy activation")
+            .expect("hardcoded checkpoint list extends past the mandatory checkpoint height")
     };
 
     (list, max_checkpoint_height)

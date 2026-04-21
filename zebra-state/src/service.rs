@@ -879,9 +879,9 @@ impl StateService {
         // required by `Request::CommitSemanticallyVerifiedBlock` call
         assert!(
             block.height > self.network.mandatory_checkpoint_height(),
-            "invalid semantically verified block height: the canopy checkpoint is mandatory, pre-canopy \
-            blocks, and the canopy activation block, must be committed to the state as finalized \
-            blocks"
+            "invalid semantically verified block height: blocks at or below the mandatory \
+            checkpoint height must be committed to the state as finalized blocks (on Ycash \
+            the mandatory checkpoint is the block before UPGRADE_YCASH)"
         );
     }
 

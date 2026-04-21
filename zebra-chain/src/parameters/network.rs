@@ -246,20 +246,25 @@ impl Network {
 
     /// Get the mandatory minimum checkpoint height for this network.
     ///
-    /// Mandatory checkpoints are a Zebra-specific feature.
-    /// If a Zcash consensus rule only applies before the mandatory checkpoint,
-    /// Zebra can skip validation of that rule.
-    /// This is necessary because Zebra can't fully validate the blocks prior to Canopy.
-    // TODO:
-    // - Support constructing pre-Canopy coinbase tx and block templates and return `Height::MAX` instead of panicking
-    //   when Canopy activation height is `None` (#8434)
+    /// Mandatory checkpoints are a Zebra-specific feature: everything at or
+    /// below this height must be finalized via checkpoint verification;
+    /// semantic verification only takes over above it.
+    ///
+    /// On Ycash, this is the block immediately before the Ycash fork activation.
+    /// Pre-fork history is byte-identical to Zcash and is covered by a dense
+    /// checkpoint list inherited from upstream. Post-fork consensus is handled
+    /// by the semantic verifier, which Milestone 3 taught the Ycash rules.
+    ///
+    /// On networks where Ycash never activates (regtest, custom testnets that
+    /// omit UPGRADE_YCASH), we fall back to Canopy's pre-activation height so
+    /// the invariant still resolves to a meaningful boundary.
     pub fn mandatory_checkpoint_height(&self) -> Height {
-        // Currently this is just before Canopy activation
-        NetworkUpgrade::Canopy
+        NetworkUpgrade::Ycash
             .activation_height(self)
-            .expect("Canopy activation height must be present on all networks")
+            .or_else(|| NetworkUpgrade::Canopy.activation_height(self))
+            .expect("Ycash or Canopy activation height must be set")
             .previous()
-            .expect("Canopy activation height must be above min height")
+            .expect("activation height must be above min height")
     }
 
     /// Return the network name as defined in
