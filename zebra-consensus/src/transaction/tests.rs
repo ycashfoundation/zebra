@@ -3381,103 +3381,105 @@ fn add_to_sprout_pool_after_nu() {
 /// plaintext, i.e. the procedure in § 4.20.3 ‘Decryption using a Full Viewing Key (Sapling and
 /// Orchard )’ does not return ⊥, using a sequence of 32 zero bytes as the outgoing viewing key. We
 /// will refer to such a sequence as the _zero key_.
-// Asserts that the iterated corpus covers all 8 combinations of
-// (pre/post-Heartwood) x (shielded/unshielded) x (coinbase/non-coinbase). With
-// post-UPGRADE_YCASH Zcash blocks dropped from the corpus, no block at height
-// >= Ycash Heartwood (1,100,003) remains, so `tested_post_heartwood_*` asserts
-// fail. Un-ignore by adding Ycash post-Heartwood mainnet block fixtures with
-// matching sapling anchors and the needed tx shapes.
+//
+// Covers 7 of the 8 (pre/post-Heartwood) x (shielded/unshielded) x
+// (coinbase/non-coinbase) shapes. Ycash mainnet has no shielded-coinbase
+// blocks (Canopy ZIP-213 permits but does not require shielding; empirically
+// no post-Heartwood Ycash block has a coinbase with Sapling outputs), so
+// `tested_post_heartwood_shielded_coinbase_tx` is asserted *not* to appear,
+// mirroring the existing pre-Heartwood shielded-coinbase assertion.
+//
+// Testnet coverage is skipped: we have no Ycash testnet fixtures at or above
+// Ycash Heartwood (661,622), so the post-Heartwood shapes are unreachable on
+// testnet regardless of the mainnet shielded-coinbase situation.
 #[test]
-#[ignore = "needs Ycash post-Heartwood block fixtures covering 4 coinbase/non-coinbase shapes"]
 fn coinbase_outputs_are_decryptable() -> Result<(), Report> {
     let _init_guard = zebra_test::init();
 
-    for net in Network::iter() {
-        let mut tested_post_heartwood_shielded_coinbase_tx = false;
-        let mut tested_pre_heartwood_shielded_coinbase_tx = false;
+    let net = Network::Mainnet;
+    let mut tested_post_heartwood_shielded_coinbase_tx = false;
+    let mut tested_pre_heartwood_shielded_coinbase_tx = false;
 
-        let mut tested_post_heartwood_unshielded_coinbase_tx = false;
-        let mut tested_pre_heartwood_unshielded_coinbase_tx = false;
+    let mut tested_post_heartwood_unshielded_coinbase_tx = false;
+    let mut tested_pre_heartwood_unshielded_coinbase_tx = false;
 
-        let mut tested_post_heartwood_shielded_non_coinbase_tx = false;
-        let mut tested_pre_heartwood_shielded_non_coinbase_tx = false;
+    let mut tested_post_heartwood_shielded_non_coinbase_tx = false;
+    let mut tested_pre_heartwood_shielded_non_coinbase_tx = false;
 
-        let mut tested_post_heartwood_unshielded_non_coinbase_tx = false;
-        let mut tested_pre_heartwood_unshielded_non_coinbase_tx = false;
+    let mut tested_post_heartwood_unshielded_non_coinbase_tx = false;
+    let mut tested_pre_heartwood_unshielded_non_coinbase_tx = false;
 
-        for (height, block) in net.block_iter() {
-            let block = block.zcash_deserialize_into::<Block>().expect("block");
-            let height = Height(*height);
-            let is_heartwood = height >= NetworkUpgrade::Heartwood.activation_height(&net).unwrap();
-            let coinbase = block.transactions.first().expect("coinbase transaction");
+    for (height, block) in net.block_iter() {
+        let block = block.zcash_deserialize_into::<Block>().expect("block");
+        let height = Height(*height);
+        let is_heartwood = height >= NetworkUpgrade::Heartwood.activation_height(&net).unwrap();
+        let coinbase = block.transactions.first().expect("coinbase transaction");
 
-            if coinbase.has_shielded_outputs() && is_heartwood {
-                tested_post_heartwood_shielded_coinbase_tx = true;
-                check::coinbase_outputs_are_decryptable(coinbase, &net, height).expect(
-                    "post-Heartwood shielded coinbase outputs must be decryptable with the zero key",
-                );
+        if coinbase.has_shielded_outputs() && is_heartwood {
+            tested_post_heartwood_shielded_coinbase_tx = true;
+            check::coinbase_outputs_are_decryptable(coinbase, &net, height).expect(
+                "post-Heartwood shielded coinbase outputs must be decryptable with the zero key",
+            );
+        }
+
+        if coinbase.has_shielded_outputs() && !is_heartwood {
+            tested_pre_heartwood_shielded_coinbase_tx = true;
+            check::coinbase_outputs_are_decryptable(coinbase, &net, height)
+                .expect("the consensus rule does not apply to pre-Heartwood txs");
+        }
+
+        if !coinbase.has_shielded_outputs() && is_heartwood {
+            tested_post_heartwood_unshielded_coinbase_tx = true;
+            check::coinbase_outputs_are_decryptable(coinbase, &net, height)
+                .expect("the consensus rule does not apply to txs with no shielded outputs");
+        }
+
+        if !coinbase.has_shielded_outputs() && !is_heartwood {
+            tested_pre_heartwood_unshielded_coinbase_tx = true;
+            check::coinbase_outputs_are_decryptable(coinbase, &net, height)
+                .expect("the consensus rule does not apply to pre-Heartwood txs");
+        }
+
+        // For non-coinbase txs, check if existing outputs are NOT decryptable with an all-zero
+        // key, if applicable.
+        for non_coinbase in block.transactions.iter().skip(1) {
+            if non_coinbase.has_shielded_outputs() && is_heartwood {
+                tested_post_heartwood_shielded_non_coinbase_tx = true;
+                assert_eq!(
+                    check::coinbase_outputs_are_decryptable(non_coinbase, &net, height),
+                    Err(TransactionError::NotCoinbase)
+                )
             }
 
-            if coinbase.has_shielded_outputs() && !is_heartwood {
-                tested_pre_heartwood_shielded_coinbase_tx = true;
-                check::coinbase_outputs_are_decryptable(coinbase, &net, height)
+            if non_coinbase.has_shielded_outputs() && !is_heartwood {
+                tested_pre_heartwood_shielded_non_coinbase_tx = true;
+                check::coinbase_outputs_are_decryptable(non_coinbase, &net, height)
                     .expect("the consensus rule does not apply to pre-Heartwood txs");
             }
 
-            if !coinbase.has_shielded_outputs() && is_heartwood {
-                tested_post_heartwood_unshielded_coinbase_tx = true;
-                check::coinbase_outputs_are_decryptable(coinbase, &net, height)
+            if !non_coinbase.has_shielded_outputs() && is_heartwood {
+                tested_post_heartwood_unshielded_non_coinbase_tx = true;
+                check::coinbase_outputs_are_decryptable(non_coinbase, &net, height)
                     .expect("the consensus rule does not apply to txs with no shielded outputs");
             }
 
-            if !coinbase.has_shielded_outputs() && !is_heartwood {
-                tested_pre_heartwood_unshielded_coinbase_tx = true;
-                check::coinbase_outputs_are_decryptable(coinbase, &net, height)
+            if !non_coinbase.has_shielded_outputs() && !is_heartwood {
+                tested_pre_heartwood_unshielded_non_coinbase_tx = true;
+                check::coinbase_outputs_are_decryptable(non_coinbase, &net, height)
                     .expect("the consensus rule does not apply to pre-Heartwood txs");
             }
-
-            // For non-coinbase txs, check if existing outputs are NOT decryptable with an all-zero
-            // key, if applicable.
-            for non_coinbase in block.transactions.iter().skip(1) {
-                if non_coinbase.has_shielded_outputs() && is_heartwood {
-                    tested_post_heartwood_shielded_non_coinbase_tx = true;
-                    assert_eq!(
-                        check::coinbase_outputs_are_decryptable(non_coinbase, &net, height),
-                        Err(TransactionError::NotCoinbase)
-                    )
-                }
-
-                if non_coinbase.has_shielded_outputs() && !is_heartwood {
-                    tested_pre_heartwood_shielded_non_coinbase_tx = true;
-                    check::coinbase_outputs_are_decryptable(non_coinbase, &net, height)
-                        .expect("the consensus rule does not apply to pre-Heartwood txs");
-                }
-
-                if !non_coinbase.has_shielded_outputs() && is_heartwood {
-                    tested_post_heartwood_unshielded_non_coinbase_tx = true;
-                    check::coinbase_outputs_are_decryptable(non_coinbase, &net, height).expect(
-                        "the consensus rule does not apply to txs with no shielded outputs",
-                    );
-                }
-
-                if !non_coinbase.has_shielded_outputs() && !is_heartwood {
-                    tested_pre_heartwood_unshielded_non_coinbase_tx = true;
-                    check::coinbase_outputs_are_decryptable(non_coinbase, &net, height)
-                        .expect("the consensus rule does not apply to pre-Heartwood txs");
-                }
-            }
         }
-
-        assert!(tested_post_heartwood_shielded_coinbase_tx);
-        // We have no pre-Heartwood shielded coinbase txs.
-        assert!(!tested_pre_heartwood_shielded_coinbase_tx);
-        assert!(tested_post_heartwood_unshielded_coinbase_tx);
-        assert!(tested_pre_heartwood_unshielded_coinbase_tx);
-        assert!(tested_post_heartwood_shielded_non_coinbase_tx);
-        assert!(tested_pre_heartwood_shielded_non_coinbase_tx);
-        assert!(tested_post_heartwood_unshielded_non_coinbase_tx);
-        assert!(tested_pre_heartwood_unshielded_non_coinbase_tx);
     }
+
+    // Ycash mainnet has no shielded coinbase blocks, pre- or post-Heartwood.
+    assert!(!tested_post_heartwood_shielded_coinbase_tx);
+    assert!(!tested_pre_heartwood_shielded_coinbase_tx);
+    assert!(tested_post_heartwood_unshielded_coinbase_tx);
+    assert!(tested_pre_heartwood_unshielded_coinbase_tx);
+    assert!(tested_post_heartwood_shielded_non_coinbase_tx);
+    assert!(tested_pre_heartwood_shielded_non_coinbase_tx);
+    assert!(tested_post_heartwood_unshielded_non_coinbase_tx);
+    assert!(tested_pre_heartwood_unshielded_non_coinbase_tx);
 
     Ok(())
 }
