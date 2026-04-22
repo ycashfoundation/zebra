@@ -461,3 +461,38 @@ fn time_check_fixed() {
         node_time_check(now, block_header_time).expect("the inverse comparison should be valid");
     }
 }
+
+/// Round-trip the Ycash UPGRADE_YCASH activation block (mainnet height 570,000),
+/// which carries the new Equihash `(N=192, K=7)` 400-byte solution format.
+///
+/// Proves the deserializer accepts the Ycash solution length and that the
+/// `Solution::Ycash` variant serializes back byte-identically.
+#[test]
+fn ycash_upgrade_activation_block_570000_roundtrip() {
+    let _init_guard = zebra_test::init();
+
+    let hex = include_str!("ycash_block_570000.hex");
+    let bytes = hex::decode(hex.trim()).expect("fixture is valid hex");
+
+    let block = Block::zcash_deserialize(&bytes[..])
+        .expect("UPGRADE_YCASH activation block should deserialize under the new Ycash variant");
+
+    assert!(
+        matches!(block.header.solution, crate::work::equihash::Solution::Ycash(_)),
+        "block 570,000 must deserialize into Solution::Ycash (400 bytes)"
+    );
+
+    let reserialized = block
+        .zcash_serialize_to_vec()
+        .expect("deserialized Ycash block should re-serialize");
+    assert_eq!(reserialized, bytes, "round-trip must be byte-identical");
+
+    // Equihash parameter lookup: mainnet height 570,000 must resolve to (192, 7).
+    assert_eq!(Network::Mainnet.equihash_params(Height(570_000)), (192, 7));
+    // And the solution must validate under those parameters.
+    block
+        .header
+        .solution
+        .check(&block.header, 192, 7)
+        .expect("UPGRADE_YCASH activation block solution should verify under (192, 7)");
+}
