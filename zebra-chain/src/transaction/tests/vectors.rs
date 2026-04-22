@@ -358,6 +358,12 @@ fn invalid_orchard_nullifier() {
 /// in the block test vectors.
 /// Makes sure that zebra-serialized transactions can be deserialized by librustzcash.
 #[test]
+// Ycash sets NU5 to NO_ACTIVATION_HEIGHT, so the [Overwinter, NU5) iteration
+// range expands to "all post-Overwinter blocks" and `transaction_to_fake_v5`
+// produces V5 transactions tagged with NU5, which round-tripping through the
+// librustzcash-ycash codec does not accept. Un-ignore if/when Ycash activates
+// a V5-producing upgrade.
+#[ignore = "Ycash does not activate NU5; V5 codec path is dead"]
 fn fake_v5_librustzcash_round_trip() {
     let _init_guard = zebra_test::init();
     for network in Network::iter() {
@@ -898,6 +904,13 @@ fn consensus_branch_id() {
 }
 
 #[test]
+// Asserts `at_least_one_v5_checked` at the end, which is only reachable when
+// V5 transactions exist at validator-acceptable heights. Ycash has no NU5, so
+// V5 binding sigs never validate. The V4 portion also fails on Zcash-mainnet
+// blocks at heights >= UPGRADE_YCASH, where Ycash's consensus branch IDs
+// (M3 6002c848) diverge from Zcash's. Un-ignore once Ycash block fixtures
+// land (PR-M6.B-06) and/or Ycash activates an Orchard upgrade.
+#[ignore = "Ycash does not activate NU5; V4 branch IDs diverge above UPGRADE_YCASH"]
 fn binding_signatures() {
     let _init_guard = zebra_test::init();
 

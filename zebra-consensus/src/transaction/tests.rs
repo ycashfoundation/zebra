@@ -165,6 +165,7 @@ fn v5_transaction_with_orchard_actions_has_flags() {
 }
 
 #[test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 fn v5_transaction_with_no_inputs_fails_verification() {
     let (_, output, _) = mock_transparent_transfer(
         Height(1),
@@ -192,6 +193,7 @@ fn v5_transaction_with_no_inputs_fails_verification() {
 }
 
 #[test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 fn v5_transaction_with_no_outputs_fails_verification() {
     let (input, _, _) = mock_transparent_transfer(
         Height(1),
@@ -729,6 +731,7 @@ async fn mempool_request_with_unmined_output_spends_is_accepted() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "Ycash does not activate NU5/NU6; test constructs a V5/NU6 transaction"]
 async fn dont_skip_verification_of_block_transactions_in_mempool() {
     let mut state: MockService<_, _, _, _> = MockService::build().for_prop_tests();
     let mempool: MockService<_, _, _, _> = MockService::build().for_prop_tests();
@@ -1271,6 +1274,7 @@ async fn v5_transaction_is_rejected_before_nu5_activation() {
 }
 
 #[tokio::test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 async fn v5_transaction_is_accepted_after_nu5_activation() {
     let _init_guard = zebra_test::init();
 
@@ -1919,6 +1923,7 @@ fn v4_transaction_with_conflicting_sprout_nullifier_across_joinsplits_is_rejecte
 
 /// Test if V5 transaction with transparent funds is accepted.
 #[tokio::test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 async fn v5_transaction_with_transparent_transfer_is_accepted() {
     let network = Network::new_default_testnet();
     let network_upgrade = NetworkUpgrade::Nu5;
@@ -1978,6 +1983,7 @@ async fn v5_transaction_with_transparent_transfer_is_accepted() {
 /// Tests if a non-coinbase V5 transaction with the last valid expiry height is
 /// accepted.
 #[tokio::test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 async fn v5_transaction_with_last_valid_expiry_height() {
     let network = Network::new_default_testnet();
     let state_service =
@@ -2026,6 +2032,7 @@ async fn v5_transaction_with_last_valid_expiry_height() {
 /// Tests that a coinbase V5 transaction is accepted only if its expiry height
 /// is equal to the height of the block the transaction belongs to.
 #[tokio::test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 async fn v5_coinbase_transaction_expiry_height() {
     let network = Network::new_default_testnet();
     let state_service =
@@ -2168,6 +2175,7 @@ async fn v5_coinbase_transaction_expiry_height() {
 
 /// Tests if an expired non-coinbase V5 transaction is rejected.
 #[tokio::test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 async fn v5_transaction_with_too_low_expiry_height() {
     let network = Network::new_default_testnet();
 
@@ -2275,6 +2283,7 @@ async fn v5_transaction_with_exceeding_expiry_height() {
 
 /// Test if V5 coinbase transaction is accepted.
 #[tokio::test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 async fn v5_coinbase_transaction_is_accepted() {
     let network = Network::new_default_testnet();
     let network_upgrade = NetworkUpgrade::Nu5;
@@ -2329,6 +2338,7 @@ async fn v5_coinbase_transaction_is_accepted() {
 /// This test simulates the case where the script verifier rejects the transaction because the
 /// script prevents spending the source UTXO.
 #[tokio::test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 async fn v5_transaction_with_transparent_transfer_is_rejected_by_the_script() {
     let network = Network::new_default_testnet();
     let network_upgrade = NetworkUpgrade::Nu5;
@@ -2743,6 +2753,7 @@ fn v4_with_sapling_outputs_and_no_spends() {
 
 /// Test if a V5 transaction with Sapling spends is accepted by the verifier.
 #[tokio::test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 async fn v5_with_sapling_spends() {
     let _init_guard = zebra_test::init();
 
@@ -3478,6 +3489,7 @@ fn fill_action_with_note_encryption_test_vector(
 
 /// Test if shielded coinbase outputs are decryptable with an all-zero outgoing viewing key.
 #[test]
+#[ignore = "Ycash does not activate NU5; fake-V5 Orchard fixtures don't apply"]
 fn coinbase_outputs_are_decryptable_for_fake_v5_blocks() {
     for v in zebra_test::vectors::ORCHARD_NOTE_ENCRYPTION_ZERO_VECTOR.iter() {
         for net in Network::iter() {
@@ -3511,6 +3523,7 @@ fn coinbase_outputs_are_decryptable_for_fake_v5_blocks() {
 
 /// Test if random shielded outputs are NOT decryptable with an all-zero outgoing viewing key.
 #[test]
+#[ignore = "Ycash does not activate NU5; fake-V5 Orchard fixtures don't apply"]
 fn shielded_outputs_are_not_decryptable_for_fake_v5_blocks() {
     for v in zebra_test::vectors::ORCHARD_NOTE_ENCRYPTION_VECTOR.iter() {
         for net in Network::iter() {
@@ -3543,6 +3556,7 @@ fn shielded_outputs_are_not_decryptable_for_fake_v5_blocks() {
 }
 
 #[tokio::test]
+#[ignore = "ZIP-317 mempool rules are NU5-era; Ycash does not activate NU5"]
 async fn mempool_zip317_error() {
     let mut state: MockService<_, _, _, _> = MockService::build().for_prop_tests();
     let verifier = Verifier::new_for_tests(&Network::Mainnet, state.clone());
@@ -3615,6 +3629,7 @@ async fn mempool_zip317_error() {
 }
 
 #[tokio::test]
+#[ignore = "ZIP-317 mempool rules are NU5-era; Ycash does not activate NU5"]
 async fn mempool_zip317_ok() {
     let mut state: MockService<_, _, _, _> = MockService::build().for_prop_tests();
     let verifier = Verifier::new_for_tests(&Network::Mainnet, state.clone());
@@ -3688,6 +3703,7 @@ async fn mempool_zip317_ok() {
 ///
 /// Ensure a block with a transaction with garbage Orchard proofs is rejected, even if the mempool has a valid version of the same transaction.
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "Ycash does not activate NU5; Orchard proofs cannot be validated"]
 async fn block_with_garbage_orchard_proofs_is_rejected() {
     use zebra_chain::{primitives::Halo2Proof, transaction::VerifiedUnminedTx};
 
