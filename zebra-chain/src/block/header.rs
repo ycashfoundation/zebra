@@ -152,9 +152,14 @@ pub struct CountedHeader {
     pub header: Arc<Header>,
 }
 
-/// The serialized size of a Zcash block header.
+/// The serialized size of a Zcash-parameter block header.
 ///
 /// Includes the equihash input, 32-byte nonce, 3-byte equihash length field, and equihash solution.
+///
+/// Ycash post-UPGRADE_YCASH headers carry a smaller (400-byte) solution, so their real serialized
+/// size is less than this. Using the larger Zcash-parameter size here yields a more conservative
+/// [`TrustedPreallocate::max_allocation`] bound: the `max_allocation` count multiplied by any real
+/// header size (400 or 1344 bytes) still fits in [`MAX_PROTOCOL_MESSAGE_LEN`].
 const BLOCK_HEADER_LENGTH: usize =
     crate::work::equihash::Solution::INPUT_LENGTH + 32 + 3 + crate::work::equihash::SOLUTION_SIZE;
 

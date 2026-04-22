@@ -273,7 +273,10 @@ fn equihash_is_valid_for_historical_blocks() -> Result<(), Report> {
             .zcash_deserialize_into::<Block>()
             .expect("block is structurally valid");
 
-        check::equihash_solution_is_valid(&block.header)
+        // Test vectors are historical Zcash blocks with (N=200, K=9) solutions.
+        // Pass Height(0) so the lookup returns the pre-fork parameters regardless
+        // of the block's actual height under the Ycash activation schedule.
+        check::equihash_solution_is_valid(&block.header, &Network::Mainnet, Height(0))
             .expect("the equihash solution from a historical block should be valid");
     }
 

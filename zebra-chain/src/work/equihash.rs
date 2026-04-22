@@ -27,8 +27,15 @@ pub struct Error(#[from] equihash::Error);
 #[error("solver was cancelled")]
 pub struct SolverCancelled;
 
-/// The size of an Equihash solution in bytes (always 1344).
+/// The size of a Zcash-parameters (N=200, K=9) Equihash solution in bytes.
+///
+/// Used on Zcash Mainnet/Testnet at all heights, and on Ycash networks below UPGRADE_YCASH.
 pub(crate) const SOLUTION_SIZE: usize = 1344;
+
+/// The size of a Ycash-parameters (N=192, K=7) Equihash solution in bytes.
+///
+/// Used on Ycash Mainnet/Testnet from UPGRADE_YCASH onwards.
+pub(crate) const YCASH_SOLUTION_SIZE: usize = 400;
 
 /// The size of an Equihash solution in bytes on Regtest (always 36).
 pub(crate) const REGTEST_SOLUTION_SIZE: usize = 36;
@@ -39,15 +46,17 @@ pub(crate) const REGTEST_SOLUTION_SIZE: usize = 36;
 /// Rust doesn't implement common traits like `Debug`, `Clone`, etc.
 /// for collections like arrays beyond lengths 0 to 32.
 ///
-/// The size of an Equihash solution in bytes is always 1344 on Mainnet and Testnet, and
-/// is always 36 on Regtest so the length of this type is fixed.
+/// The size is always 1344 on Zcash-parameter blocks (and Ycash pre-fork blocks),
+/// 400 on Ycash post-fork blocks (N=192, K=7), and 36 on Regtest.
 #[derive(Deserialize, Serialize)]
-// It's okay to use the extra space on Regtest
+// It's okay to use the extra space on Regtest / Ycash
 #[allow(clippy::large_enum_variant)]
 pub enum Solution {
-    /// Equihash solution on Mainnet or Testnet
+    /// Equihash solution with parameters (N=200, K=9): Zcash networks and Ycash pre-fork.
     Common(#[serde(with = "BigArray")] [u8; SOLUTION_SIZE]),
-    /// Equihash solution on Regtest
+    /// Equihash solution with parameters (N=192, K=7): Ycash networks from UPGRADE_YCASH.
+    Ycash(#[serde(with = "BigArray")] [u8; YCASH_SOLUTION_SIZE]),
+    /// Equihash solution on Regtest with parameters (N=48, K=5).
     Regtest(#[serde(with = "BigArray")] [u8; REGTEST_SOLUTION_SIZE]),
 }
 
@@ -63,18 +72,17 @@ impl Solution {
     fn value(&self) -> &[u8] {
         match self {
             Solution::Common(solution) => solution.as_slice(),
+            Solution::Ycash(solution) => solution.as_slice(),
             Solution::Regtest(solution) => solution.as_slice(),
         }
     }
 
-    /// Returns `Ok(())` if `EquihashSolution` is valid for `header`
+    /// Returns `Ok(())` if `EquihashSolution` is valid for `header` under parameters `(n, k)`.
+    ///
+    /// The caller is responsible for looking up the correct `(n, k)` for the block's height
+    /// on its network (see [`crate::parameters::Network::equihash_params`]).
     #[allow(clippy::unwrap_in_result)]
-    pub fn check(&self, header: &Header) -> Result<(), Error> {
-        // TODO:
-        // - Add Equihash parameters field to `testnet::Parameters`
-        // - Update `Solution::Regtest` variant to hold a `Vec` to support arbitrary parameters - rename to `Other`
-        let n = 200;
-        let k = 9;
+    pub fn check(&self, header: &Header, n: u32, k: u32) -> Result<(), Error> {
         let nonce = &header.nonce;
 
         let mut input = Vec::new();
@@ -100,6 +108,11 @@ impl Solution {
                 let mut bytes = [0; SOLUTION_SIZE];
                 bytes.copy_from_slice(solution);
                 Ok(Self::Common(bytes))
+            }
+            YCASH_SOLUTION_SIZE => {
+                let mut bytes = [0; YCASH_SOLUTION_SIZE];
+                bytes.copy_from_slice(solution);
+                Ok(Self::Ycash(bytes))
             }
             REGTEST_SOLUTION_SIZE => {
                 let mut bytes = [0; REGTEST_SOLUTION_SIZE];
@@ -170,7 +183,8 @@ impl Solution {
                     .expect("unexpected invalid solution: incorrect length");
 
                 // TODO: work out why we sometimes get invalid solutions here
-                if let Err(error) = header.solution.check(&header) {
+                // The solver uses tromp::solve_200_9 above, so validate against the same (N, K).
+                if let Err(error) = header.solution.check(&header, 200, 9) {
                     info!(?error, "found invalid solution for header");
                     continue;
                 }

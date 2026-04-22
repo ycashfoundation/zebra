@@ -139,14 +139,22 @@ pub fn difficulty_is_valid(
     Ok(())
 }
 
-/// Returns `Ok(())` if the `EquihashSolution` is valid for `header`
-pub fn equihash_solution_is_valid(header: &Header) -> Result<(), equihash::Error> {
+/// Returns `Ok(())` if the `EquihashSolution` is valid for `header` at `height` on `network`.
+///
+/// The Equihash `(N, K)` parameters are network- and height-dependent — Ycash switches
+/// from `(200, 9)` to `(192, 7)` at UPGRADE_YCASH.
+pub fn equihash_solution_is_valid(
+    header: &Header,
+    network: &Network,
+    height: Height,
+) -> Result<(), equihash::Error> {
     // # Consensus
     //
     // > `solution` MUST represent a valid Equihash solution.
     //
     // https://zips.z.cash/protocol/protocol.pdf#blockheader
-    header.solution.check(header)
+    let (n, k) = network.equihash_params(height);
+    header.solution.check(header, n, k)
 }
 
 /// Returns `Ok()` with the deferred pool balance change of the coinbase transaction if the block
