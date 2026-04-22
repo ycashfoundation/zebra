@@ -1560,13 +1560,13 @@ async fn v4_coinbase_transaction_with_exceeding_expiry_height() {
         service_fn(|_| async { unreachable!("State service should not be called") });
     let verifier = Verifier::new_for_tests(&Network::Mainnet, state_service);
 
-    // Use an arbitrary pre-NU5 block height.
-    // It can't be NU5-onward because the expiry height limit is not enforced
-    // for coinbase transactions (it needs to match the block height instead),
-    // which is what is used in this test.
-    let block_height = (NetworkUpgrade::Nu5
+    // Ycash does not activate NU5, so V4's pre-NU5 coinbase expiry rule (ZIP-203
+    // `MAX_EXPIRY_HEIGHT` = 499_999_999) applies at every block height. Pick a
+    // height just before UPGRADE_YCASH so the tx lives in the shared
+    // Zcash/Ycash Sapling branch-id range.
+    let block_height = (NetworkUpgrade::Ycash
         .activation_height(&Network::Mainnet)
-        .expect("NU5 height must be set")
+        .expect("Ycash activation height is set on Mainnet")
         - 1)
     .expect("will not underflow");
 
@@ -2445,10 +2445,20 @@ fn v4_with_signed_sprout_transfer_is_accepted() {
     zebra_test::MULTI_THREADED_RUNTIME.block_on(async {
         let network = Network::Mainnet;
 
+        // Ycash swaps consensus branch IDs at UPGRADE_YCASH (M3 6002c848). Only
+        // heights where Zcash and Ycash share a branch ID produce matching
+        // ZIP-243 sighashes, i.e. the Sapling epoch on both chains. Restrict
+        // the search to transactions from heights below UPGRADE_YCASH so the
+        // Zcash-signed joinsplitSig validates under Ycash branch IDs.
+        let ycash_fork = NetworkUpgrade::Ycash
+            .activation_height(&network)
+            .expect("Ycash activation height is set on Mainnet");
         let (height, transaction) = test_transactions(&network)
             .rev()
-            .filter(|(_, transaction)| {
-                !transaction.is_coinbase() && transaction.inputs().is_empty()
+            .filter(|(h, transaction)| {
+                *h < ycash_fork
+                    && !transaction.is_coinbase()
+                    && transaction.inputs().is_empty()
             })
             .find(|(_, transaction)| transaction.sprout_groth16_joinsplits().next().is_some())
             .expect("No transaction found with Groth16 JoinSplits");
@@ -2586,10 +2596,20 @@ fn v4_with_sapling_spends() {
     zebra_test::MULTI_THREADED_RUNTIME.block_on(async {
         let network = Network::Mainnet;
 
+        // Restrict to heights below UPGRADE_YCASH so the test picks a V4 Sapling
+        // tx whose ZIP-243 sighash was signed under a branch ID that Ycash still
+        // uses (M3 6002c848 swapped all post-UPGRADE_YCASH branch IDs). Heights
+        // below the fork are also strictly below Zcash NU5, so this also
+        // excludes V5 transactions (which Ycash does not support).
+        let ycash_fork = NetworkUpgrade::Ycash
+            .activation_height(&network)
+            .expect("Ycash activation height is set on Mainnet");
         let (height, transaction) = test_transactions(&network)
             .rev()
-            .filter(|(_, transaction)| {
-                !transaction.is_coinbase() && transaction.inputs().is_empty()
+            .filter(|(h, transaction)| {
+                *h < ycash_fork
+                    && !transaction.is_coinbase()
+                    && transaction.inputs().is_empty()
             })
             .find(|(_, transaction)| transaction.sapling_spends_per_anchor().next().is_some())
             .expect("No transaction found with Sapling spends");
@@ -2671,6 +2691,14 @@ fn v4_with_duplicate_sapling_spends() {
 
 /// Test if a V4 transaction with Sapling outputs but no spends is accepted by the verifier.
 #[test]
+// The upstream filter (no transparent inputs, no Sapling spends, has Sapling
+// outputs) finds a tx in Zcash post-fork blocks, but those transactions were
+// signed with Zcash consensus branch IDs that Ycash swapped at UPGRADE_YCASH
+// (M3 6002c848). A survey of Zebra's mainnet+testnet Sapling-era vectors
+// (Sapling activation..UPGRADE_YCASH) shows no qualifying tx -- all Sapling-
+// output txs in range have at least one transparent input. Un-ignore once a
+// Ycash Sapling-era block fixture with a suitable tx is added (PR-M6.B-06).
+#[ignore = "needs Ycash Sapling-era block fixture with Sapling-output-only tx"]
 fn v4_with_sapling_outputs_and_no_spends() {
     let _init_guard = zebra_test::init();
     zebra_test::MULTI_THREADED_RUNTIME.block_on(async {
