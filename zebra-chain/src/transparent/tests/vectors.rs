@@ -64,20 +64,20 @@ fn get_transparent_output_address() -> Result<()> {
     let addr = transaction.outputs()[0]
         .address(&Network::Mainnet)
         .expect("should return address");
-    assert_eq!(addr.to_string(), "t3M5FDmPfWNRG3HRLddbicsuSCvKuk9hxzZ");
+    assert_eq!(addr.to_string(), "s314nT2AtZDEDTSCn5oJWJhSMwmy8hmu4zU");
     let addr = transaction.outputs()[0]
         .address(&Network::new_default_testnet())
         .expect("should return address");
-    assert_eq!(addr.to_string(), "t294SGSVoNq2daz15ZNbmAW65KQZ5e3nN5G");
+    assert_eq!(addr.to_string(), "s2CPaUoaK8rJTpZvc2xdsLStngmTFFH7viR");
     // Public key hash e4ff5512ffafe9287992a1cd177ca6e408e03003
     let addr = transaction.outputs()[1]
         .address(&Network::Mainnet)
         .expect("should return address");
-    assert_eq!(addr.to_string(), "t1ekRwsd4LaSsd6NXgsx66q2HxQWTLCF44y");
+    assert_eq!(addr.to_string(), "s1i5aAEha6bihrgJ4ATzCGmq1KmQd1RgfhP");
     let addr = transaction.outputs()[1]
         .address(&Network::new_default_testnet())
         .expect("should return address");
-    assert_eq!(addr.to_string(), "tmWbBGi7TjExNmLZyMcFpxVh3ZPbGrpbX3H");
+    assert_eq!(addr.to_string(), "smZvKV5ByVGECzvVVqCHw8SVkvkVSS8DBpM");
 
     Ok(())
 }

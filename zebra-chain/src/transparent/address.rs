@@ -380,7 +380,7 @@ mod tests {
 
         let t_addr = pub_key.to_address(NetworkKind::Mainnet);
 
-        assert_eq!(format!("{t_addr}"), "t1bmMa1wJDFdbc2TiURQP5BbBz6jHjUBuHq");
+        assert_eq!(format!("{t_addr}"), "s1f6VnP1oyGuRqcPEx1SVF8PuMTdTJbdQ3E");
     }
 
     #[test]
@@ -395,7 +395,7 @@ mod tests {
 
         let t_addr = pub_key.to_address(NetworkKind::Testnet);
 
-        assert_eq!(format!("{t_addr}"), "tmTc6trRhbv96kGfA99i7vrFwb5p7BVFwc3");
+        assert_eq!(format!("{t_addr}"), "smWwF7DWDMwQvyragcjkE6o4exSiGnjgq37");
     }
 
     #[test]
@@ -406,7 +406,7 @@ mod tests {
 
         let t_addr = script.to_address(NetworkKind::Mainnet);
 
-        assert_eq!(format!("{t_addr}"), "t3Y5pHwfgHbS6pDjj1HLuMFxhFFip1fcJ6g");
+        assert_eq!(format!("{t_addr}"), "s3C5MXCSuLSF4ENXATT3h35Vcz7N2qkXvtr");
     }
 
     #[test]
@@ -417,16 +417,18 @@ mod tests {
 
         let t_addr = script.to_address(NetworkKind::Testnet);
 
-        assert_eq!(format!("{t_addr}"), "t2L51LcmpA43UMvKTw2Lwtt9LMjwyqU2V1P");
+        assert_eq!(format!("{t_addr}"), "s2PQ9YyrKv5KJbWEzQcP44px3j6r9Wh1keV");
     }
 
     #[test]
     fn from_string() {
         let _init_guard = zebra_test::init();
 
+        // Legacy Zcash t3-prefix parses for backward compatibility, but the
+        // round-trip normalizes to the Ycash s3-prefix (same script hash payload).
         let t_addr: Address = "t3Vz22vK5z2LcKEdg16Yv4FFneEL1zg9ojd".parse().unwrap();
 
-        assert_eq!(format!("{t_addr}"), "t3Vz22vK5z2LcKEdg16Yv4FFneEL1zg9ojd");
+        assert_eq!(format!("{t_addr}"), "s39yZGB6K2s9ZjPR7TGFhk4niP5yEsdN47P");
     }
 
     #[test]
