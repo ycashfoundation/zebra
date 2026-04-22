@@ -323,20 +323,22 @@ fn subsidy_is_valid_for_network(network: Network) -> Result<(), Report> {
     Ok(())
 }
 
-// Operates on Zcash post-Canopy mainnet block fixtures whose coinbases pay
-// Zcash funding-stream recipients; under Ycash's subsidy rules the unmodified
-// blocks fail `FoundersRewardNotFound` before the test's modifications can be
-// exercised. Re-enable with Ycash fork-era block fixtures (PR-M6.B-06).
+// Exercises coinbase-position failure paths on Ycash Canopy-era fixtures
+// inside the founders'-reward window (height < ydf_mandate_end_height).
+// Block 1,100,006 is a coinbase-only block (→ NoTransactions on removal,
+// and valid CoinbaseAfterFirst substrate on duplication). Block 1,100,010
+// carries a non-coinbase Sapling output tx, so removing the coinbase leaves
+// a non-coinbase at index 0 (→ CoinbasePosition).
 #[test]
-#[ignore = "needs Ycash historical block vectors"]
 fn coinbase_validation_failure() -> Result<(), Report> {
     let _init_guard = zebra_test::init();
     let network = Network::Mainnet;
 
-    // Get a block in the mainnet that is inside the funding stream period,
-    // and delete the coinbase transaction
+    // Get a Ycash Canopy-era block in the founders'-reward window and delete
+    // the coinbase transaction. Block 1,100,006 has only the coinbase, so
+    // removal empties the block.
     let block =
-        Arc::<Block>::zcash_deserialize(&zebra_test::vectors::BLOCK_MAINNET_1046400_BYTES[..])
+        Arc::<Block>::zcash_deserialize(&zebra_test::vectors::BLOCK_MAINNET_1100006_BYTES[..])
             .expect("block should deserialize");
     let mut block = Arc::try_unwrap(block).expect("block should unwrap");
 
@@ -360,9 +362,11 @@ fn coinbase_validation_failure() -> Result<(), Report> {
     let expected = BlockError::Transaction(TransactionError::Subsidy(SubsidyError::NoCoinbase));
     assert_eq!(expected, result);
 
-    // Get another funding stream block, and delete the coinbase transaction
+    // Get a Ycash Canopy-era block with a non-coinbase Sapling output tx and
+    // delete the coinbase: a non-coinbase tx remains at index 0, so
+    // `coinbase_is_first` reports `CoinbasePosition`.
     let block =
-        Arc::<Block>::zcash_deserialize(&zebra_test::vectors::BLOCK_MAINNET_1046401_BYTES[..])
+        Arc::<Block>::zcash_deserialize(&zebra_test::vectors::BLOCK_MAINNET_1100010_BYTES[..])
             .expect("block should deserialize");
     let mut block = Arc::try_unwrap(block).expect("block should unwrap");
 
@@ -386,13 +390,16 @@ fn coinbase_validation_failure() -> Result<(), Report> {
     let expected = BlockError::Transaction(TransactionError::Subsidy(SubsidyError::NoCoinbase));
     assert_eq!(expected, result);
 
-    // Get another funding stream, and duplicate the coinbase transaction
+    // Take another Ycash Canopy-era block and duplicate the coinbase: the
+    // block now has two coinbase txs (the second not at index 0), so
+    // `coinbase_is_first` reports `CoinbaseAfterFirst`. Subsidy stays valid
+    // because the original founders'-reward output is still present.
     let block =
-        Arc::<Block>::zcash_deserialize(&zebra_test::vectors::BLOCK_MAINNET_1180900_BYTES[..])
+        Arc::<Block>::zcash_deserialize(&zebra_test::vectors::BLOCK_MAINNET_1100007_BYTES[..])
             .expect("block should deserialize");
     let mut block = Arc::try_unwrap(block).expect("block should unwrap");
 
-    // Remove coinbase transaction
+    // Duplicate coinbase transaction
     block.transactions.push(
         block
             .transactions
@@ -455,20 +462,19 @@ fn funding_stream_validation_for_network(network: Network) -> Result<(), Report>
     Ok(())
 }
 
-// Modifies a Zcash post-Canopy coinbase and expects `FundingStreamNotFound`,
-// but on Ycash the unmodified Zcash block already fails with
-// `FoundersRewardNotFound` before the modification matters. To be rewritten
-// against a Ycash fork-era block that pays Ycash founders (PR-M6.B-06), at
-// which point the expected error will be `FoundersRewardNotFound`.
+// On Ycash the post-Canopy funding-stream swap never happens; the founders'
+// reward continues through `ydf_mandate_end_height` instead. Replacing a
+// Ycash Canopy-era coinbase's founders'-reward output with a single
+// high-value miner output must therefore fail with `FoundersRewardNotFound`
+// (not Zcash's `FundingStreamNotFound`).
 #[test]
-#[ignore = "needs Ycash historical block vectors"]
 fn funding_stream_validation_failure() -> Result<(), Report> {
     let _init_guard = zebra_test::init();
     let network = Network::Mainnet;
 
-    // Get a block in the mainnet that is inside the funding stream period.
+    // Ycash Canopy-era block paying the Ycash founders' reward.
     let block =
-        Arc::<Block>::zcash_deserialize(&zebra_test::vectors::BLOCK_MAINNET_1046400_BYTES[..])
+        Arc::<Block>::zcash_deserialize(&zebra_test::vectors::BLOCK_MAINNET_1100006_BYTES[..])
             .expect("block should deserialize");
 
     // Build the new transaction with modified coinbase outputs
@@ -507,7 +513,7 @@ fn funding_stream_validation_failure() -> Result<(), Report> {
 
     let result = check::subsidy_is_valid(&block, &network, expected_block_subsidy);
     let expected = Err(BlockError::Transaction(TransactionError::Subsidy(
-        SubsidyError::FundingStreamNotFound,
+        SubsidyError::FoundersRewardNotFound,
     )));
     assert_eq!(expected, result);
 

@@ -110,6 +110,11 @@ lazy_static! {
             (1_100_005, BLOCK_MAINNET_1100005_BYTES.as_ref()),
             (1_100_006, BLOCK_MAINNET_1100006_BYTES.as_ref()),
             (1_100_007, BLOCK_MAINNET_1100007_BYTES.as_ref()),
+
+            // Extra Canopy-era block with a non-coinbase Sapling tx, used by
+            // `block::tests::coinbase_validation_failure` to provide the
+            // multi-tx shape needed for the `CoinbasePosition` sub-case.
+            (1_100_010, BLOCK_MAINNET_1100010_BYTES.as_ref()),
         ].iter().cloned().collect();
 
     /// Mainnet final Sprout roots, indexed by height.
@@ -148,6 +153,7 @@ lazy_static! {
             (1_100_005, SAPLING_FINAL_ROOT_MAINNET_1100005_BYTES.as_ref().try_into().unwrap()),
             (1_100_006, SAPLING_FINAL_ROOT_MAINNET_1100006_BYTES.as_ref().try_into().unwrap()),
             (1_100_007, SAPLING_FINAL_ROOT_MAINNET_1100007_BYTES.as_ref().try_into().unwrap()),
+            (1_100_010, SAPLING_FINAL_ROOT_MAINNET_1100010_BYTES.as_ref().try_into().unwrap()),
         ].iter().cloned().collect();
 
     /// Mainnet final Orchard roots (anchors), indexed by height.
@@ -607,6 +613,19 @@ lazy_static! {
         .expect("Block bytes are in valid hex representation");
     pub static ref SAPLING_FINAL_ROOT_MAINNET_1100007_BYTES: [u8; 32] =
         <[u8; 32]>::from_hex("168bc2dc9bb11793d7ef8f0894852a144bc4b367e16a9ce7d0745e0bd8571f8d")
+        .expect("final root bytes are in valid hex representation").rev();
+
+    // Ycash mainnet block 1,100,010 (YCanopy + 4). Has a non-coinbase Sapling
+    // output tx, so `block.transactions.len() == 2`. Used by
+    // `coinbase_validation_failure` for the `CoinbasePosition` sub-case
+    // (removing the coinbase leaves a non-coinbase tx at index 0).
+    //
+    // ycash-cli getblock 1100010 0 > block-main-1-100-010.txt
+    pub static ref BLOCK_MAINNET_1100010_BYTES: Vec<u8> =
+        <Vec<u8>>::from_hex(include_str!("block-main-1-100-010.txt").trim())
+        .expect("Block bytes are in valid hex representation");
+    pub static ref SAPLING_FINAL_ROOT_MAINNET_1100010_BYTES: [u8; 32] =
+        <[u8; 32]>::from_hex("126ba5e9c72f5eb2b8f5552e4fe5ce3c47557983db215d91dd9c758066ba61ca")
         .expect("final root bytes are in valid hex representation").rev();
 
     // Sapling treestate.
