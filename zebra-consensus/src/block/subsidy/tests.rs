@@ -2,102 +2,51 @@
 
 #![allow(clippy::unwrap_in_result)]
 
-use std::collections::HashMap;
-
 use color_eyre::Report;
-use zebra_chain::amount::Amount;
-use zebra_chain::parameters::NetworkUpgrade::*;
-use zebra_chain::parameters::{subsidy::FundingStreamReceiver, NetworkKind};
+use zebra_chain::parameters::NetworkUpgrade;
 
 use super::*;
 
-/// Checks that the Mainnet funding stream values are correct.
+/// Checks that Ycash has no funding streams on any network.
+///
+/// Zcash swapped founders' reward -> dev/ECC/ZF/MG funding streams at Canopy
+/// activation; Ycash does not, continuing founders' reward through
+/// `nYdfMandateEndHeight`. The Ycash FUNDING_STREAMS arrays are therefore
+/// empty (M3 facdbde2), and `funding_stream_values()` should always return an
+/// empty map regardless of height.
 #[test]
-fn test_funding_stream_values() -> Result<(), Report> {
+fn ycash_has_no_funding_streams() -> Result<(), Report> {
     let _init_guard = zebra_test::init();
-    let network = &Network::Mainnet;
 
-    let canopy_activation_height = Canopy.activation_height(network).unwrap();
-    let nu6_activation_height = Nu6.activation_height(network).unwrap();
-    let nu6_1_activation_height = Nu6_1.activation_height(network).unwrap();
+    for network in Network::iter() {
+        assert!(
+            network.all_funding_streams().is_empty(),
+            "Ycash {network:?} should have no funding streams, got {streams:?}",
+            streams = network.all_funding_streams()
+        );
 
-    let dev_fund_height_range = network.all_funding_streams()[0].height_range();
-    let nu6_fund_height_range = network.all_funding_streams()[1].height_range();
-    let nu6_1_fund_height_range = network.all_funding_streams()[2].height_range();
-
-    let nu6_fund_end = Height(3_146_400);
-    let nu6_1_fund_end = Height(4_406_400);
-
-    assert_eq!(canopy_activation_height, Height(1_046_400));
-    assert_eq!(nu6_activation_height, Height(2_726_400));
-    assert_eq!(nu6_1_activation_height, Height(3_146_400));
-
-    assert_eq!(dev_fund_height_range.start, canopy_activation_height);
-    assert_eq!(dev_fund_height_range.end, nu6_activation_height);
-
-    assert_eq!(nu6_fund_height_range.start, nu6_activation_height);
-    assert_eq!(nu6_fund_height_range.end, nu6_fund_end);
-
-    assert_eq!(nu6_1_fund_height_range.start, nu6_1_activation_height);
-    assert_eq!(nu6_1_fund_height_range.end, nu6_1_fund_end);
-
-    assert_eq!(dev_fund_height_range.end, nu6_fund_height_range.start);
-
-    let mut expected_dev_fund = HashMap::new();
-
-    expected_dev_fund.insert(FundingStreamReceiver::Ecc, Amount::try_from(21_875_000)?);
-    expected_dev_fund.insert(
-        FundingStreamReceiver::ZcashFoundation,
-        Amount::try_from(15_625_000)?,
-    );
-    expected_dev_fund.insert(
-        FundingStreamReceiver::MajorGrants,
-        Amount::try_from(25_000_000)?,
-    );
-    let expected_dev_fund = expected_dev_fund;
-
-    let mut expected_nu6_fund = HashMap::new();
-    expected_nu6_fund.insert(
-        FundingStreamReceiver::Deferred,
-        Amount::try_from(18_750_000)?,
-    );
-    expected_nu6_fund.insert(
-        FundingStreamReceiver::MajorGrants,
-        Amount::try_from(12_500_000)?,
-    );
-    let expected_nu6_fund = expected_nu6_fund;
-
-    for height in [
-        dev_fund_height_range.start.previous().unwrap(),
-        dev_fund_height_range.start,
-        dev_fund_height_range.start.next().unwrap(),
-        dev_fund_height_range.end.previous().unwrap(),
-        dev_fund_height_range.end,
-        dev_fund_height_range.end.next().unwrap(),
-        nu6_fund_height_range.start.previous().unwrap(),
-        nu6_fund_height_range.start,
-        nu6_fund_height_range.start.next().unwrap(),
-        nu6_fund_height_range.end.previous().unwrap(),
-        nu6_fund_height_range.end,
-        nu6_fund_height_range.end.next().unwrap(),
-        nu6_1_fund_height_range.start.previous().unwrap(),
-        nu6_1_fund_height_range.start,
-        nu6_1_fund_height_range.start.next().unwrap(),
-        nu6_1_fund_height_range.end.previous().unwrap(),
-        nu6_1_fund_height_range.end,
-        nu6_1_fund_height_range.end.next().unwrap(),
-    ] {
-        let fsv = funding_stream_values(height, network, block_subsidy(height, network)?).unwrap();
-
-        if height < canopy_activation_height {
-            assert!(fsv.is_empty());
-        } else if height < nu6_activation_height {
-            assert_eq!(fsv, expected_dev_fund);
-        } else if height < nu6_1_fund_end {
-            // NU6 and NU6.1 funding streams are in the same halving and expected to have the same values
-            assert_eq!(fsv, expected_nu6_fund);
-        } else {
-            assert!(fsv.is_empty());
+        // Sample a range of heights that would correspond to Zcash's funding-stream
+        // period (around Canopy, plus later heights where Zcash NU6/NU6.1 would start),
+        // and confirm funding_stream_values() is empty at every one.
+        let canopy_activation_height = NetworkUpgrade::Canopy
+            .activation_height(&network)
+            .expect("Canopy has an activation height on Ycash Mainnet/Testnet");
+        let sample_heights = [
+            Height(1),
+            canopy_activation_height.previous().unwrap(),
+            canopy_activation_height,
+            canopy_activation_height.next().unwrap(),
+            Height(2_000_000),
+            Height(3_000_000),
+            Height(4_000_000),
+        ];
+        for height in sample_heights {
+            let fsv = funding_stream_values(height, &network, block_subsidy(height, &network)?)
+                .expect("funding_stream_values is Ok when streams are empty");
+            assert!(
+                fsv.is_empty(),
+                "funding_stream_values at {height:?} on {network:?} should be empty, got {fsv:?}"
+            );
         }
     }
 
@@ -105,6 +54,9 @@ fn test_funding_stream_values() -> Result<(), Report> {
 }
 
 /// Check mainnet and testnet funding stream addresses are valid transparent P2SH addresses.
+///
+/// Ycash has no funding streams, so this loop is vacuous on real networks but
+/// still exercises the iteration/branching over `all_funding_streams()`.
 #[test]
 fn test_funding_stream_addresses() -> Result<(), Report> {
     let _init_guard = zebra_test::init();
@@ -116,9 +68,14 @@ fn test_funding_stream_addresses() -> Result<(), Report> {
         {
             for address in recipient.addresses() {
                 let expected_network_kind = match network.kind() {
-                    NetworkKind::Mainnet => NetworkKind::Mainnet,
+                    zebra_chain::parameters::NetworkKind::Mainnet => {
+                        zebra_chain::parameters::NetworkKind::Mainnet
+                    }
                     // `Regtest` uses `Testnet` transparent addresses.
-                    NetworkKind::Testnet | NetworkKind::Regtest => NetworkKind::Testnet,
+                    zebra_chain::parameters::NetworkKind::Testnet
+                    | zebra_chain::parameters::NetworkKind::Regtest => {
+                        zebra_chain::parameters::NetworkKind::Testnet
+                    }
                 };
 
                 assert_eq!(
