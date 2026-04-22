@@ -80,6 +80,7 @@ fn v5_transactions_basic_check() -> Result<(), Report> {
 }
 
 #[test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 fn v5_transaction_with_orchard_actions_has_inputs_and_outputs() {
     for net in Network::iter() {
         let mut tx = v5_transactions(net.block_iter())
@@ -125,6 +126,7 @@ fn v5_transaction_with_orchard_actions_has_inputs_and_outputs() {
 }
 
 #[test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 fn v5_transaction_with_orchard_actions_has_flags() {
     for net in Network::iter() {
         let mut tx = v5_transactions(net.block_iter())
@@ -1211,6 +1213,7 @@ async fn state_error_converted_correctly() {
 }
 
 #[test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 fn v5_coinbase_transaction_without_enable_spends_flag_passes_validation() {
     for net in Network::iter() {
         let mut tx = v5_transactions(net.block_iter())
@@ -1226,6 +1229,7 @@ fn v5_coinbase_transaction_without_enable_spends_flag_passes_validation() {
 }
 
 #[test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 fn v5_coinbase_transaction_with_enable_spends_flag_fails_validation() {
     for net in Network::iter() {
         let mut tx = v5_transactions(net.block_iter())
@@ -1246,6 +1250,7 @@ fn v5_coinbase_transaction_with_enable_spends_flag_fails_validation() {
 }
 
 #[tokio::test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 async fn v5_transaction_is_rejected_before_nu5_activation() {
     let sapling = NetworkUpgrade::Sapling;
 
@@ -2798,6 +2803,7 @@ async fn v5_with_sapling_spends() {
 
 /// Test if a V5 transaction with a duplicate Sapling spend is rejected by the verifier.
 #[tokio::test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 async fn v5_with_duplicate_sapling_spends() {
     let _init_guard = zebra_test::init();
 
@@ -2837,6 +2843,7 @@ async fn v5_with_duplicate_sapling_spends() {
 
 /// Test if a V5 transaction with a duplicate Orchard action is rejected by the verifier.
 #[tokio::test]
+#[ignore = "Ycash does not activate NU5; V5 transactions cannot be validated"]
 async fn v5_with_duplicate_orchard_action() {
     let _init_guard = zebra_test::init();
 
@@ -3374,7 +3381,14 @@ fn add_to_sprout_pool_after_nu() {
 /// plaintext, i.e. the procedure in § 4.20.3 ‘Decryption using a Full Viewing Key (Sapling and
 /// Orchard )’ does not return ⊥, using a sequence of 32 zero bytes as the outgoing viewing key. We
 /// will refer to such a sequence as the _zero key_.
+// Asserts that the iterated corpus covers all 8 combinations of
+// (pre/post-Heartwood) x (shielded/unshielded) x (coinbase/non-coinbase). With
+// post-UPGRADE_YCASH Zcash blocks dropped from the corpus, no block at height
+// >= Ycash Heartwood (1,100,003) remains, so `tested_post_heartwood_*` asserts
+// fail. Un-ignore by adding Ycash post-Heartwood mainnet block fixtures with
+// matching sapling anchors and the needed tx shapes.
 #[test]
+#[ignore = "needs Ycash post-Heartwood block fixtures covering 4 coinbase/non-coinbase shapes"]
 fn coinbase_outputs_are_decryptable() -> Result<(), Report> {
     let _init_guard = zebra_test::init();
 

@@ -225,12 +225,16 @@ fn block_test_vectors() {
             );
             }
 
-            if height >= Nu5.activation_height(&net).expect("activation height").0 {
-                assert!(
-                    orchard_anchors.contains_key(&height),
-                    "post-nu5 block test vectors must have matching orchard root test vectors: \
-                 missing {net} {height}"
-                );
+            // Ycash does not activate NU5, so this orchard-anchor assertion is
+            // vacuous. Gate on an actual activation height if one is ever added.
+            if let Some(nu5_activation) = Nu5.activation_height(&net) {
+                if height >= nu5_activation.0 {
+                    assert!(
+                        orchard_anchors.contains_key(&height),
+                        "post-nu5 block test vectors must have matching orchard root test vectors: \
+                     missing {net} {height}"
+                    );
+                }
             }
         }
     }

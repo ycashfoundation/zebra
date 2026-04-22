@@ -90,49 +90,20 @@ lazy_static! {
 
             // A bad version field
             (434_873, BLOCK_MAINNET_434873_BYTES.as_ref()),
-            (653_599, BLOCK_MAINNET_653599_BYTES.as_ref()),
 
-            // Blossom
-            (653_600, BLOCK_MAINNET_653600_BYTES.as_ref()),
-            (653_601, BLOCK_MAINNET_653601_BYTES.as_ref()),
-            (902_999, BLOCK_MAINNET_902999_BYTES.as_ref()),
-
-            // Heartwood
-            (903_000, BLOCK_MAINNET_903000_BYTES.as_ref()),
-            (903_001, BLOCK_MAINNET_903001_BYTES.as_ref()),
-
-            // Shielded coinbase x3
-            (949_496, BLOCK_MAINNET_949496_BYTES.as_ref()),
-            (975_066, BLOCK_MAINNET_975066_BYTES.as_ref()),
-            (982_681, BLOCK_MAINNET_982681_BYTES.as_ref()),
-
-            // Last Heartwood
-            (1_046_399, BLOCK_MAINNET_1046399_BYTES.as_ref()),
-
-            // Canopy and First Coinbase Halving
-            (1_046_400, BLOCK_MAINNET_1046400_BYTES.as_ref()),
-            (1_046_401, BLOCK_MAINNET_1046401_BYTES.as_ref()),
-            (1_180_900, BLOCK_MAINNET_1180900_BYTES.as_ref()),
-
-            // NU5
+            // UPGRADE_YCASH activates at height 570,000 on Ycash mainnet. The
+            // Ycash chain diverges from Zcash there, so all Zcash blocks at
+            // heights >= 570,000 are invalid on Ycash (different consensus
+            // branch IDs, different coinbase recipients, and for >= 903,000
+            // also different `hashBlockCommitments` semantics under Heartwood).
+            // Ycash replacement fixtures at equivalent Y-upgrade milestones
+            // can be added here once harvested (PR-M6.B-06 follow-up).
             //
-            // Contains:
-            //
-            // - First Sapling to Sapling V5 txs.
-            // - First Sapling to Sapling V4 tx after NU5.
-            (1_687_106, BLOCK_MAINNET_1687106_BYTES.as_ref()),
-            // - First transparent to Sapling V5 tx.
-            // - First Sapling to Orchard tx.
-            (1_687_107, BLOCK_MAINNET_1687107_BYTES.as_ref()),
-            // - First transparent V5 txs.
-            // - First Sapling to transparent V5 txs.
-            (1_687_108, BLOCK_MAINNET_1687108_BYTES.as_ref()),
-            // - First transparent to (transparent + Sapling) V5 tx.
-            (1_687_113, BLOCK_MAINNET_1687113_BYTES.as_ref()),
-            // - First Sapling to (Sapling + Orchard) tx.
-            (1_687_118, BLOCK_MAINNET_1687118_BYTES.as_ref()),
-            // - First Orchard to Orchard tx.
-            (1_687_121, BLOCK_MAINNET_1687121_BYTES.as_ref()),
+            // Dropped: 653_599/600/601 (Blossom), 902_999, 903_000/001 (Heartwood),
+            // 949_496, 975_066, 982_681 (shielded coinbase), 1_046_399, 1_046_400/401
+            // (Canopy), 1_180_900, 1_687_106..1_687_121 (NU5). The corresponding
+            // BLOCK_MAINNET_*_BYTES constants below are kept for direct-reference
+            // tests (e.g. coinbase_validation_failure, which is currently ignored).
         ].iter().cloned().collect();
 
     /// Mainnet final Sprout roots, indexed by height.
@@ -162,31 +133,9 @@ lazy_static! {
             (419_202, SAPLING_FINAL_ROOT_MAINNET_419202_BYTES.as_ref().try_into().unwrap()),
             // A bad version field
             (434_873, SAPLING_FINAL_ROOT_MAINNET_434873_BYTES.as_ref().try_into().unwrap()),
-            (653_599, SAPLING_FINAL_ROOT_MAINNET_653599_BYTES.as_ref().try_into().unwrap()),
-            // Blossom
-            (653_600, SAPLING_FINAL_ROOT_MAINNET_653600_BYTES.as_ref().try_into().unwrap()),
-            (653_601, SAPLING_FINAL_ROOT_MAINNET_653601_BYTES.as_ref().try_into().unwrap()),
-            (902_999, SAPLING_FINAL_ROOT_MAINNET_902999_BYTES.as_ref().try_into().unwrap()),
-            // Heartwood
-            (903_000, SAPLING_FINAL_ROOT_MAINNET_903000_BYTES.as_ref().try_into().unwrap()),
-            (903_001, SAPLING_FINAL_ROOT_MAINNET_903001_BYTES.as_ref().try_into().unwrap()),
-            // Shielded coinbase x3
-            (949_496, SAPLING_FINAL_ROOT_MAINNET_949496_BYTES.as_ref().try_into().unwrap()),
-            (975_066, SAPLING_FINAL_ROOT_MAINNET_975066_BYTES.as_ref().try_into().unwrap()),
-            (982_681, SAPLING_FINAL_ROOT_MAINNET_982681_BYTES.as_ref().try_into().unwrap()),
-            // Last Heartwood
-            (1_046_399, SAPLING_FINAL_ROOT_MAINNET_1046399_BYTES.as_ref().try_into().unwrap()),
-            // Canopy and First Coinbase Halving
-            (1_046_400, SAPLING_FINAL_ROOT_MAINNET_1046400_BYTES.as_ref().try_into().unwrap()),
-            (1_046_401, SAPLING_FINAL_ROOT_MAINNET_1046401_BYTES.as_ref().try_into().unwrap()),
-            (1_180_900, SAPLING_FINAL_ROOT_MAINNET_1180900_BYTES.as_ref().try_into().unwrap()),
-            // NU5
-            (1_687_106, SAPLING_FINAL_ROOT_MAINNET_1687106_BYTES.as_ref().try_into().unwrap()),
-            (1_687_107, SAPLING_FINAL_ROOT_MAINNET_1687107_BYTES.as_ref().try_into().unwrap()),
-            (1_687_108, SAPLING_FINAL_ROOT_MAINNET_1687108_BYTES.as_ref().try_into().unwrap()),
-            (1_687_113, SAPLING_FINAL_ROOT_MAINNET_1687113_BYTES.as_ref().try_into().unwrap()),
-            (1_687_118, SAPLING_FINAL_ROOT_MAINNET_1687118_BYTES.as_ref().try_into().unwrap()),
-            (1_687_121, SAPLING_FINAL_ROOT_MAINNET_1687121_BYTES.as_ref().try_into().unwrap()),
+            // Entries at Zcash heights >= 570,000 are dropped: Ycash forks at
+            // UPGRADE_YCASH=570,000 and those blocks are not valid on Ycash.
+            // See MAINNET_BLOCKS above for details.
         ].iter().cloned().collect();
 
     /// Mainnet final Orchard roots (anchors), indexed by height.
@@ -194,13 +143,7 @@ lazy_static! {
     /// Pre-Orchard anchors are all-zeroes. If there are no Orchard actions in a block, the anchor
     /// is the same as the one for the previous block.
     pub static ref MAINNET_FINAL_ORCHARD_ROOTS: BTreeMap<u32, &'static [u8; 32]> = [
-            // NU5
-            (1_687_106, ORCHARD_FINAL_ROOT_MAINNET_1687106_BYTES.as_ref().try_into().unwrap()),
-            (1_687_107, ORCHARD_FINAL_ROOT_MAINNET_1687107_BYTES.as_ref().try_into().unwrap()),
-            (1_687_108, ORCHARD_FINAL_ROOT_MAINNET_1687108_BYTES.as_ref().try_into().unwrap()),
-            (1_687_113, ORCHARD_FINAL_ROOT_MAINNET_1687113_BYTES.as_ref().try_into().unwrap()),
-            (1_687_118, ORCHARD_FINAL_ROOT_MAINNET_1687118_BYTES.as_ref().try_into().unwrap()),
-            (1_687_121, ORCHARD_FINAL_ROOT_MAINNET_1687121_BYTES.as_ref().try_into().unwrap()),
+            // Ycash does not activate NU5, so there are no Orchard-era blocks.
         ].iter().cloned().collect();
 
     /// Testnet blocks, indexed by height
@@ -240,58 +183,12 @@ lazy_static! {
             (299_201, BLOCK_TESTNET_299201_BYTES.as_ref()),
             // Minimum-difficulty block
             (299_202, BLOCK_TESTNET_299202_BYTES.as_ref()),
-            (583_999, BLOCK_TESTNET_583999_BYTES.as_ref()),
-            // Blossom
-            (584_000, BLOCK_TESTNET_584000_BYTES.as_ref()),
-            (584_001, BLOCK_TESTNET_584001_BYTES.as_ref()),
-            (903_799, BLOCK_TESTNET_903799_BYTES.as_ref()),
-            // Heartwood
-            (903_800, BLOCK_TESTNET_903800_BYTES.as_ref()),
-            (903_801, BLOCK_TESTNET_903801_BYTES.as_ref()),
-            // Shielded coinbase x2
-            (914_678, BLOCK_TESTNET_914678_BYTES.as_ref()),
-            (925_483, BLOCK_TESTNET_925483_BYTES.as_ref()),
-            (1_028_499, BLOCK_TESTNET_1028499_BYTES.as_ref()),
-            // Canopy
-            (1_028_500, BLOCK_TESTNET_1028500_BYTES.as_ref()),
-            (1_028_501, BLOCK_TESTNET_1028501_BYTES.as_ref()),
-            (1_095_000, BLOCK_TESTNET_1095000_BYTES.as_ref()),
-            // Shielded coinbase
-            (1_101_629, BLOCK_TESTNET_1101629_BYTES.as_ref()),
-            // Last Pre-Halving
-            (1_115_999, BLOCK_TESTNET_1115999_BYTES.as_ref()),
-            // First Coinbase Halving
-            (1_116_000, BLOCK_TESTNET_1116000_BYTES.as_ref()),
-            (1_116_001, BLOCK_TESTNET_1116001_BYTES.as_ref()),
-            (1_326_100, BLOCK_TESTNET_1326100_BYTES.as_ref()),
 
-            // NU5
-            //
-            // Contains:
-
-            // First V5 tx with:
-            //
-            // - 4 Sapling spends, and
-            // - 2 Orchard actions.
-            (1_842_421, BLOCK_TESTNET_1842421_BYTES.as_ref()),
-            // First V5 tx with:
-            //
-            // - 50 transparent inputs, and
-            // - 1 Sapling output.
-            (1_842_432, BLOCK_TESTNET_1842432_BYTES.as_ref()),
-            // First V5 tx with:
-            //
-            // - 2 transparent inputs, and
-            // - 2 Orchard actions.
-            (1_842_462, BLOCK_TESTNET_1842462_BYTES.as_ref()),
-            // First V5 tx with two Orchard actions and no other transfers.
-            (1_842_467, BLOCK_TESTNET_1842467_BYTES.as_ref()),
-            // First V5 tx with:
-            //
-            // - 1 transparent input,
-            // - 1 Sapling output, and
-            // - 2 Orchard actions.
-            (1_842_468, BLOCK_TESTNET_1842468_BYTES.as_ref()),
+            // UPGRADE_YCASH activates at height 510,248 on Ycash testnet. As
+            // with mainnet, all Zcash testnet blocks at heights >= 510,248
+            // are invalid on Ycash testnet and are dropped here. The
+            // BLOCK_TESTNET_*_BYTES constants below are kept for direct-
+            // reference tests.
         ].iter().cloned().collect();
 
     /// Testnet final Sprout roots, indexed by height.
@@ -321,36 +218,8 @@ lazy_static! {
             (299_201, SAPLING_FINAL_ROOT_TESTNET_299201_BYTES.as_ref().try_into().unwrap()),
             // Minimum-difficulty block
             (299_202, SAPLING_FINAL_ROOT_TESTNET_299202_BYTES.as_ref().try_into().unwrap()),
-            (583_999, SAPLING_FINAL_ROOT_TESTNET_583999_BYTES.as_ref().try_into().unwrap()),
-            // Blossom
-            (584_000, SAPLING_FINAL_ROOT_TESTNET_584000_BYTES.as_ref().try_into().unwrap()),
-            (584_001, SAPLING_FINAL_ROOT_TESTNET_584001_BYTES.as_ref().try_into().unwrap()),
-            (903_799, SAPLING_FINAL_ROOT_TESTNET_903799_BYTES.as_ref().try_into().unwrap()),
-            // Heartwood
-            (903_800, SAPLING_FINAL_ROOT_TESTNET_903800_BYTES.as_ref().try_into().unwrap()),
-            (903_801, SAPLING_FINAL_ROOT_TESTNET_903801_BYTES.as_ref().try_into().unwrap()),
-            // Shielded coinbase x2
-            (914_678, SAPLING_FINAL_ROOT_TESTNET_914678_BYTES.as_ref().try_into().unwrap()),
-            (925_483, SAPLING_FINAL_ROOT_TESTNET_925483_BYTES.as_ref().try_into().unwrap()),
-            (1_028_499, SAPLING_FINAL_ROOT_TESTNET_1028499_BYTES.as_ref().try_into().unwrap()),
-            // Canopy
-            (1_028_500, SAPLING_FINAL_ROOT_TESTNET_1028500_BYTES.as_ref().try_into().unwrap()),
-            (1_028_501, SAPLING_FINAL_ROOT_TESTNET_1028501_BYTES.as_ref().try_into().unwrap()),
-            (1_095_000, SAPLING_FINAL_ROOT_TESTNET_1095000_BYTES.as_ref().try_into().unwrap()),
-            // Shielded coinbase
-            (1_101_629, SAPLING_FINAL_ROOT_TESTNET_1101629_BYTES.as_ref().try_into().unwrap()),
-            // Last Pre-Halving
-            (1_115_999, SAPLING_FINAL_ROOT_TESTNET_1115999_BYTES.as_ref().try_into().unwrap()),
-            // First Coinbase Halving
-            (1_116_000, SAPLING_FINAL_ROOT_TESTNET_1116000_BYTES.as_ref().try_into().unwrap()),
-            (1_116_001, SAPLING_FINAL_ROOT_TESTNET_1116001_BYTES.as_ref().try_into().unwrap()),
-            (1_326_100, SAPLING_FINAL_ROOT_TESTNET_1326100_BYTES.as_ref().try_into().unwrap()),
-            // NU5
-            (1_842_421, SAPLING_FINAL_ROOT_TESTNET_1842421_BYTES.as_ref().try_into().unwrap()),
-            (1_842_432, SAPLING_FINAL_ROOT_TESTNET_1842432_BYTES.as_ref().try_into().unwrap()),
-            (1_842_462, SAPLING_FINAL_ROOT_TESTNET_1842462_BYTES.as_ref().try_into().unwrap()),
-            (1_842_467, SAPLING_FINAL_ROOT_TESTNET_1842467_BYTES.as_ref().try_into().unwrap()),
-            (1_842_468, SAPLING_FINAL_ROOT_TESTNET_1842468_BYTES.as_ref().try_into().unwrap()),
+            // Entries at testnet heights >= 510,248 are dropped: Ycash testnet
+            // forks there. See TESTNET_BLOCKS above.
         ].iter().cloned().collect();
 
     /// Testnet final Orchard roots (anchors), indexed by height.
@@ -358,12 +227,7 @@ lazy_static! {
     /// Pre-Orchard anchors are all-zeroes. If there are no Orchard actions in a block, the anchor
     /// is the same as the one for the previous block.
     pub static ref TESTNET_FINAL_ORCHARD_ROOTS: BTreeMap<u32, &'static [u8; 32]> = [
-            // NU5
-            (1_842_421, ORCHARD_FINAL_ROOT_TESTNET_1842421_BYTES.as_ref().try_into().unwrap()),
-            (1_842_432, ORCHARD_FINAL_ROOT_TESTNET_1842432_BYTES.as_ref().try_into().unwrap()),
-            (1_842_462, ORCHARD_FINAL_ROOT_TESTNET_1842462_BYTES.as_ref().try_into().unwrap()),
-            (1_842_467, ORCHARD_FINAL_ROOT_TESTNET_1842467_BYTES.as_ref().try_into().unwrap()),
-            (1_842_468, ORCHARD_FINAL_ROOT_TESTNET_1842468_BYTES.as_ref().try_into().unwrap()),
+            // Ycash does not activate NU5, so there are no Orchard-era blocks.
         ].iter().cloned().collect();
 
     // Mainnet
