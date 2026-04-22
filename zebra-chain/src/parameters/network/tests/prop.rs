@@ -7,18 +7,23 @@ use crate::{
 };
 
 proptest! {
-    /// Check that the mandatory checkpoint is immediately before Canopy activation.
+    /// Check that the mandatory checkpoint is immediately before the Ycash fork activation.
+    ///
+    /// On Ycash, pre-fork history is byte-identical to Zcash and is checkpointed;
+    /// post-fork consensus goes through the semantic verifier. The boundary
+    /// between the two is UPGRADE_YCASH activation, so the mandatory checkpoint
+    /// is the block immediately before that height.
     #[test]
-    fn mandatory_checkpoint_is_immediately_before_canopy(network in any::<Network>()) {
+    fn mandatory_checkpoint_is_immediately_before_ycash(network in any::<Network>()) {
         let _init_guard = zebra_test::init();
 
-        let pre_canopy_activation = NetworkUpgrade::Canopy
+        let pre_ycash_activation = NetworkUpgrade::Ycash
             .activation_height(&network)
-            .expect("Canopy activation height is set")
+            .expect("Ycash activation height is set on Mainnet and default Testnet")
             .previous()
-            .expect("Canopy activation should be above min height");
+            .expect("Ycash activation should be above min height");
 
-        assert!(network.mandatory_checkpoint_height() >= pre_canopy_activation);
+        assert_eq!(network.mandatory_checkpoint_height(), pre_ycash_activation);
     }
     #[test]
     /// Asserts that the activation height is correct for the block
