@@ -66,29 +66,32 @@ fn blockheaderhash_from_blockheader() {
 fn blockheader_serialization() {
     let _init_guard = zebra_test::init();
 
-    // Includes the 32-byte nonce and 3-byte equihash length field.
-    const BLOCK_HEADER_LENGTH: usize = crate::work::equihash::Solution::INPUT_LENGTH
-        + 32
-        + 3
-        + crate::work::equihash::SOLUTION_SIZE;
-
     for block in zebra_test::vectors::BLOCKS.iter() {
         // successful deserialization
+        //
+        // Deserialize the header from the full block bytes. The header length
+        // varies with the equihash solution size (Zcash: 1344 bytes, Ycash:
+        // 400 bytes post-UPGRADE_YCASH), so we can't slice with a fixed
+        // constant here. `zcash_deserialize_into` consumes exactly the header
+        // bytes and leaves the rest of the block alone.
 
-        let header_bytes = &block[..BLOCK_HEADER_LENGTH];
-
-        let mut header = header_bytes
+        let mut header = (&block[..])
             .zcash_deserialize_into::<Header>()
             .expect("blockheader test vector should deserialize");
 
         // successful serialization
 
-        let _serialized_header = header
+        let serialized_header = header
             .zcash_serialize_to_vec()
             .expect("blockheader test vector should serialize");
 
         // deserialiation errors
+        //
+        // Use the re-serialized header bytes for the error-case corruption
+        // tests; the first four bytes are the version field which the tests
+        // target.
 
+        let header_bytes = serialized_header.as_slice();
         let header_bytes = [&[255; 4], &header_bytes[4..]].concat();
 
         let deserialization_err = header_bytes

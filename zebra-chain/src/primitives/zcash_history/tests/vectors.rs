@@ -11,10 +11,11 @@ use eyre::Result;
 /// and its next block.
 #[test]
 fn tree() -> Result<()> {
-    for network in Network::iter() {
-        tree_for_network_upgrade(&network, NetworkUpgrade::Heartwood)?;
-        tree_for_network_upgrade(&network, NetworkUpgrade::Canopy)?;
-    }
+    // Mainnet-only on Ycash; testnet fixtures at YHeartwood/YCanopy are
+    // unavailable.
+    let network = Network::Mainnet;
+    tree_for_network_upgrade(&network, NetworkUpgrade::Heartwood)?;
+    tree_for_network_upgrade(&network, NetworkUpgrade::Canopy)?;
     Ok(())
 }
 

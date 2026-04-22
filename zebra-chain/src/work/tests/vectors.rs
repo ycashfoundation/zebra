@@ -1,35 +1,33 @@
 use crate::{
     block::{Block, MAX_BLOCK_BYTES},
-    serialization::{CompactSizeMessage, ZcashDeserialize, ZcashDeserializeInto, ZcashSerialize},
+    serialization::{CompactSizeMessage, ZcashDeserialize, ZcashSerialize},
     work::equihash::{Solution, SOLUTION_SIZE},
 };
-
-use super::super::*;
-
-/// Includes the 32-byte nonce.
-const EQUIHASH_SOLUTION_BLOCK_OFFSET: usize = equihash::Solution::INPUT_LENGTH + 32;
-
-/// Includes the 3-byte equihash length field.
-const BLOCK_HEADER_LENGTH: usize = EQUIHASH_SOLUTION_BLOCK_OFFSET + 3 + equihash::SOLUTION_SIZE;
 
 #[test]
 fn equihash_solution_test_vectors() {
     let _init_guard = zebra_test::init();
 
+    // Deserialize each full block (header + transactions), then round-trip
+    // just the equihash solution from the parsed header. This sidesteps
+    // hard-coded header-length math, which would be wrong for Ycash blocks
+    // whose equihash solution is 400 bytes instead of 1344 (see M5.5).
     for block in zebra_test::vectors::BLOCKS.iter() {
-        let solution_bytes = &block[EQUIHASH_SOLUTION_BLOCK_OFFSET..BLOCK_HEADER_LENGTH];
+        let block =
+            Block::zcash_deserialize(&block[..]).expect("block test vector should deserialize");
 
-        let solution = solution_bytes
-            .zcash_deserialize_into::<equihash::Solution>()
-            .expect("Test vector EquihashSolution should deserialize");
+        let original = block
+            .header
+            .solution
+            .zcash_serialize_to_vec()
+            .expect("solution should serialize");
 
-        let mut data = Vec::new();
-        solution
-            .zcash_serialize(&mut data)
-            .expect("Test vector EquihashSolution should serialize");
+        let roundtrip = Solution::zcash_deserialize(original.as_slice())
+            .expect("test vector equihash solution should deserialize")
+            .zcash_serialize_to_vec()
+            .expect("solution should re-serialize");
 
-        assert_eq!(solution_bytes.len(), data.len());
-        assert_eq!(solution_bytes, data.as_slice());
+        assert_eq!(original, roundtrip);
     }
 }
 
@@ -41,7 +39,12 @@ fn equihash_solution_test_vectors_are_valid() -> color_eyre::eyre::Result<()> {
         let block =
             Block::zcash_deserialize(&block[..]).expect("block test vector should deserialize");
 
-        block.header.solution.check(&block.header, 200, 9)?;
+        // Ycash blocks at heights >= UPGRADE_YCASH use (N, K) = (192, 7); all
+        // other blocks in the Zebra corpus use the common (200, 9). Derive
+        // the parameters from the parsed solution's own variant instead of
+        // hard-coding one pair for every fixture.
+        let (n, k) = block.header.solution.params();
+        block.header.solution.check(&block.header, n, k)?;
     }
 
     Ok(())

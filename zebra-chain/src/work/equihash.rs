@@ -77,6 +77,20 @@ impl Solution {
         }
     }
 
+    /// Returns the equihash `(N, K)` parameters implied by this solution's size.
+    ///
+    /// Useful for tests and diagnostics that need to self-check a solution
+    /// without knowing its network or height: the solution variant uniquely
+    /// determines `(N, K)` in Ycash today (common/Zcash = (200, 9),
+    /// Ycash post-UPGRADE_YCASH = (192, 7), regtest = (48, 5)).
+    pub fn params(&self) -> (u32, u32) {
+        match self {
+            Solution::Common(_) => (200, 9),
+            Solution::Ycash(_) => (192, 7),
+            Solution::Regtest(_) => (48, 5),
+        }
+    }
+
     /// Returns `Ok(())` if `EquihashSolution` is valid for `header` under parameters `(n, k)`.
     ///
     /// The caller is responsible for looking up the correct `(n, k)` for the block's height

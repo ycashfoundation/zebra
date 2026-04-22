@@ -51,7 +51,8 @@ fn equihash_prop_test_solution() -> color_eyre::eyre::Result<()> {
     for block_bytes in zebra_test::vectors::BLOCKS.iter() {
         let block = Block::zcash_deserialize(&block_bytes[..])
             .expect("block test vector should deserialize");
-        block.header.solution.check(&block.header, 200, 9)?;
+        let (n, k) = block.header.solution.params();
+        block.header.solution.check(&block.header, n, k)?;
 
         // The equihash solution test can be really slow, so we use fewer cases by
         // default. Set the PROPTEST_CASES env var to override this default.
@@ -60,8 +61,9 @@ fn equihash_prop_test_solution() -> color_eyre::eyre::Result<()> {
                                       .and_then(|v| v.parse().ok())
                                       .unwrap_or(DEFAULT_TEST_INPUT_PROPTEST_CASES)),
                 |(fake_header in randomized_solutions(*block.header.as_ref()))| {
+            let (n, k) = fake_header.solution.params();
             fake_header.solution
-                .check(&fake_header, 200, 9)
+                .check(&fake_header, n, k)
                 .expect_err("block header should not validate on randomized solution");
         });
     }
@@ -91,11 +93,13 @@ fn equihash_prop_test_nonce() -> color_eyre::eyre::Result<()> {
     for block_bytes in zebra_test::vectors::BLOCKS.iter() {
         let block = Block::zcash_deserialize(&block_bytes[..])
             .expect("block test vector should deserialize");
-        block.header.solution.check(&block.header, 200, 9)?;
+        let (n, k) = block.header.solution.params();
+        block.header.solution.check(&block.header, n, k)?;
 
         proptest!(|(fake_header in randomized_nonce(*block.header.as_ref()))| {
+            let (n, k) = fake_header.solution.params();
             fake_header.solution
-                .check(&fake_header, 200, 9)
+                .check(&fake_header, n, k)
                 .expect_err("block header should not validate on randomized nonce");
         });
     }
@@ -127,15 +131,17 @@ fn equihash_prop_test_input() -> color_eyre::eyre::Result<()> {
     for block_bytes in zebra_test::vectors::BLOCKS.iter() {
         let block = Block::zcash_deserialize(&block_bytes[..])
             .expect("block test vector should deserialize");
-        block.header.solution.check(&block.header, 200, 9)?;
+        let (n, k) = block.header.solution.params();
+        block.header.solution.check(&block.header, n, k)?;
 
         proptest!(Config::with_cases(env::var("PROPTEST_CASES")
                                   .ok()
                                   .and_then(|v| v.parse().ok())
                                  .unwrap_or(DEFAULT_TEST_INPUT_PROPTEST_CASES)),
               |(fake_header in randomized_input(*block.header.as_ref()))| {
+            let (n, k) = fake_header.solution.params();
             fake_header.solution
-                .check(&fake_header, 200, 9)
+                .check(&fake_header, n, k)
                 .expect_err("equihash solution should not validate on randomized input");
         });
     }

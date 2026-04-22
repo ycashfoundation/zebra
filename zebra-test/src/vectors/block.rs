@@ -96,14 +96,20 @@ lazy_static! {
             // heights >= 570,000 are invalid on Ycash (different consensus
             // branch IDs, different coinbase recipients, and for >= 903,000
             // also different `hashBlockCommitments` semantics under Heartwood).
-            // Ycash replacement fixtures at equivalent Y-upgrade milestones
-            // can be added here once harvested (PR-M6.B-06 follow-up).
-            //
-            // Dropped: 653_599/600/601 (Blossom), 902_999, 903_000/001 (Heartwood),
-            // 949_496, 975_066, 982_681 (shielded coinbase), 1_046_399, 1_046_400/401
-            // (Canopy), 1_180_900, 1_687_106..1_687_121 (NU5). The corresponding
-            // BLOCK_MAINNET_*_BYTES constants below are kept for direct-reference
-            // tests (e.g. coinbase_validation_failure, which is currently ignored).
+            // The Zcash heights 653_599..1_687_121 are dropped. Corresponding
+            // BLOCK_MAINNET_*_BYTES constants below are kept for direct-
+            // reference tests (e.g. coinbase_validation_failure).
+
+            // YBlossom / YHeartwood / YCanopy activation window on Ycash.
+            // Ycash mainnet relocates all three upgrades to consecutive heights
+            // 1_100_000 / 1_100_003 / 1_100_006 (constants::mainnet::{BLOSSOM,
+            // HEARTWOOD, CANOPY}). These five blocks cover the Heartwood-to-Canopy
+            // range needed by the history-tree MMR tests.
+            (1_100_003, BLOCK_MAINNET_1100003_BYTES.as_ref()),
+            (1_100_004, BLOCK_MAINNET_1100004_BYTES.as_ref()),
+            (1_100_005, BLOCK_MAINNET_1100005_BYTES.as_ref()),
+            (1_100_006, BLOCK_MAINNET_1100006_BYTES.as_ref()),
+            (1_100_007, BLOCK_MAINNET_1100007_BYTES.as_ref()),
         ].iter().cloned().collect();
 
     /// Mainnet final Sprout roots, indexed by height.
@@ -135,7 +141,13 @@ lazy_static! {
             (434_873, SAPLING_FINAL_ROOT_MAINNET_434873_BYTES.as_ref().try_into().unwrap()),
             // Entries at Zcash heights >= 570,000 are dropped: Ycash forks at
             // UPGRADE_YCASH=570,000 and those blocks are not valid on Ycash.
-            // See MAINNET_BLOCKS above for details.
+            //
+            // Ycash YBlossom/YHeartwood/YCanopy window (see MAINNET_BLOCKS).
+            (1_100_003, SAPLING_FINAL_ROOT_MAINNET_1100003_BYTES.as_ref().try_into().unwrap()),
+            (1_100_004, SAPLING_FINAL_ROOT_MAINNET_1100004_BYTES.as_ref().try_into().unwrap()),
+            (1_100_005, SAPLING_FINAL_ROOT_MAINNET_1100005_BYTES.as_ref().try_into().unwrap()),
+            (1_100_006, SAPLING_FINAL_ROOT_MAINNET_1100006_BYTES.as_ref().try_into().unwrap()),
+            (1_100_007, SAPLING_FINAL_ROOT_MAINNET_1100007_BYTES.as_ref().try_into().unwrap()),
         ].iter().cloned().collect();
 
     /// Mainnet final Orchard roots (anchors), indexed by height.
@@ -554,6 +566,47 @@ lazy_static! {
         .expect("final root bytes are in valid hex representation").rev();
     pub static ref ORCHARD_FINAL_ROOT_MAINNET_1687121_BYTES: [u8; 32] =
         <[u8; 32]>::from_hex("09b17d8907236adea12b83ed69054f4996686d7c4ca76db25c4c48b90e272b0f")
+        .expect("final root bytes are in valid hex representation").rev();
+
+    // Ycash mainnet YBlossom/YHeartwood/YCanopy activation window.
+    //
+    // Ycash relocated Blossom/Heartwood/Canopy to three consecutive blocks
+    // 1_100_000/1_100_003/1_100_006 (see parameters::constants::mainnet). The
+    // five blocks covering Heartwood activation, Canopy-1, and Canopy +/- 1
+    // are the fixtures needed by the history-tree MMR tests.
+    //
+    // for i in 1100003 1100004 1100005 1100006 1100007; do
+    //     ycash-cli getblock $i 0 > block-main-1-100-00$[i-1100000].txt
+    // done
+    pub static ref BLOCK_MAINNET_1100003_BYTES: Vec<u8> =
+        <Vec<u8>>::from_hex(include_str!("block-main-1-100-003.txt").trim())
+        .expect("Block bytes are in valid hex representation");
+    pub static ref SAPLING_FINAL_ROOT_MAINNET_1100003_BYTES: [u8; 32] =
+        <[u8; 32]>::from_hex("168bc2dc9bb11793d7ef8f0894852a144bc4b367e16a9ce7d0745e0bd8571f8d")
+        .expect("final root bytes are in valid hex representation").rev();
+    pub static ref BLOCK_MAINNET_1100004_BYTES: Vec<u8> =
+        <Vec<u8>>::from_hex(include_str!("block-main-1-100-004.txt").trim())
+        .expect("Block bytes are in valid hex representation");
+    pub static ref SAPLING_FINAL_ROOT_MAINNET_1100004_BYTES: [u8; 32] =
+        <[u8; 32]>::from_hex("168bc2dc9bb11793d7ef8f0894852a144bc4b367e16a9ce7d0745e0bd8571f8d")
+        .expect("final root bytes are in valid hex representation").rev();
+    pub static ref BLOCK_MAINNET_1100005_BYTES: Vec<u8> =
+        <Vec<u8>>::from_hex(include_str!("block-main-1-100-005.txt").trim())
+        .expect("Block bytes are in valid hex representation");
+    pub static ref SAPLING_FINAL_ROOT_MAINNET_1100005_BYTES: [u8; 32] =
+        <[u8; 32]>::from_hex("168bc2dc9bb11793d7ef8f0894852a144bc4b367e16a9ce7d0745e0bd8571f8d")
+        .expect("final root bytes are in valid hex representation").rev();
+    pub static ref BLOCK_MAINNET_1100006_BYTES: Vec<u8> =
+        <Vec<u8>>::from_hex(include_str!("block-main-1-100-006.txt").trim())
+        .expect("Block bytes are in valid hex representation");
+    pub static ref SAPLING_FINAL_ROOT_MAINNET_1100006_BYTES: [u8; 32] =
+        <[u8; 32]>::from_hex("168bc2dc9bb11793d7ef8f0894852a144bc4b367e16a9ce7d0745e0bd8571f8d")
+        .expect("final root bytes are in valid hex representation").rev();
+    pub static ref BLOCK_MAINNET_1100007_BYTES: Vec<u8> =
+        <Vec<u8>>::from_hex(include_str!("block-main-1-100-007.txt").trim())
+        .expect("Block bytes are in valid hex representation");
+    pub static ref SAPLING_FINAL_ROOT_MAINNET_1100007_BYTES: [u8; 32] =
+        <[u8; 32]>::from_hex("168bc2dc9bb11793d7ef8f0894852a144bc4b367e16a9ce7d0745e0bd8571f8d")
         .expect("final root bytes are in valid hex representation").rev();
 
     // Sapling treestate.
