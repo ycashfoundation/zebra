@@ -91,6 +91,13 @@ lazy_static! {
             // A bad version field
             (434_873, BLOCK_MAINNET_434873_BYTES.as_ref()),
 
+            // Sapling-era Ycash mainnet block (pre-UPGRADE_YCASH 570,000),
+            // contains a V4 Sprout->Sapling migration tx: no transparent
+            // inputs, no Sapling spends, one Sapling output, funded by a
+            // joinsplit. Supplies the fixture needed by
+            // `transaction::tests::v4_with_sapling_outputs_and_no_spends`.
+            (553_000, BLOCK_MAINNET_553000_BYTES.as_ref()),
+
             // UPGRADE_YCASH activates at height 570,000 on Ycash mainnet. The
             // Ycash chain diverges from Zcash there, so all Zcash blocks at
             // heights >= 570,000 are invalid on Ycash (different consensus
@@ -150,6 +157,7 @@ lazy_static! {
             (419_202, SAPLING_FINAL_ROOT_MAINNET_419202_BYTES.as_ref().try_into().unwrap()),
             // A bad version field
             (434_873, SAPLING_FINAL_ROOT_MAINNET_434873_BYTES.as_ref().try_into().unwrap()),
+            (553_000, SAPLING_FINAL_ROOT_MAINNET_553000_BYTES.as_ref().try_into().unwrap()),
             // Entries at Zcash heights >= 570,000 are dropped: Ycash forks at
             // UPGRADE_YCASH=570,000 and those blocks are not valid on Ycash.
             //
@@ -409,6 +417,21 @@ lazy_static! {
         .expect("Block bytes are in valid hex representation");
     pub static ref SAPLING_FINAL_ROOT_MAINNET_434873_BYTES: [u8; 32] =
         <[u8; 32]>::from_hex("56e33199bc41d146cb24d24a65db35101248a1d12fff33affef56f90081a9517")
+        .expect("final root bytes are in valid hex representation").rev();
+
+    // Ycash mainnet block 553,000 (pre-UPGRADE_YCASH, Sapling era). Three
+    // txs: coinbase, a V4 transparent tx, and a V4 Sprout->Sapling
+    // migration with no transparent inputs, no Sapling spends, one Sapling
+    // output, and one joinsplit. The third tx is what
+    // `v4_with_sapling_outputs_and_no_spends` looks for when iterating
+    // `test_transactions(Mainnet).rev()`.
+    //
+    // ycash-cli getblock 553000 0 > block-main-0-553-000.txt
+    pub static ref BLOCK_MAINNET_553000_BYTES: Vec<u8> =
+        <Vec<u8>>::from_hex(include_str!("block-main-0-553-000.txt").trim())
+        .expect("Block bytes are in valid hex representation");
+    pub static ref SAPLING_FINAL_ROOT_MAINNET_553000_BYTES: [u8; 32] =
+        <[u8; 32]>::from_hex("486203c5f9310a2fb673f1a302167aca1b943f5d396c35a6e0f023cea7593314")
         .expect("final root bytes are in valid hex representation").rev();
 
     // Blossom transition

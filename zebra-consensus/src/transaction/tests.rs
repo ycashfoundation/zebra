@@ -2705,15 +2705,12 @@ fn v4_with_duplicate_sapling_spends() {
 }
 
 /// Test if a V4 transaction with Sapling outputs but no spends is accepted by the verifier.
+// Ycash Sapling-era block 553,000 (pre-UPGRADE_YCASH) contains a
+// Sprout->Sapling migration tx (no transparent inputs, no Sapling spends,
+// one Sapling output, funded by a joinsplit). `test_transactions().rev()`
+// walks the Mainnet fixture set newest-first; post-Heartwood fixtures
+// above 553,000 don't match the filter, so this is the tx picked.
 #[test]
-// The upstream filter (no transparent inputs, no Sapling spends, has Sapling
-// outputs) finds a tx in Zcash post-fork blocks, but those transactions were
-// signed with Zcash consensus branch IDs that Ycash swapped at UPGRADE_YCASH
-// (M3 6002c848). A survey of Zebra's mainnet+testnet Sapling-era vectors
-// (Sapling activation..UPGRADE_YCASH) shows no qualifying tx -- all Sapling-
-// output txs in range have at least one transparent input. Un-ignore once a
-// Ycash Sapling-era block fixture with a suitable tx is added (PR-M6.B-06).
-#[ignore = "needs Ycash Sapling-era block fixture with Sapling-output-only tx"]
 fn v4_with_sapling_outputs_and_no_spends() {
     let _init_guard = zebra_test::init();
     zebra_test::MULTI_THREADED_RUNTIME.block_on(async {
