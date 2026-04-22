@@ -394,6 +394,20 @@ impl NetworkUpgrade {
         NetworkUpgrade::branch_id_list().get(self).cloned()
     }
 
+    /// Returns the Equihash `(N, K)` parameters for the network upgrade.
+    ///
+    /// Ycash switches to `(192, 7)` at UPGRADE_YCASH and keeps those parameters for every
+    /// subsequent upgrade. See `ycashd/src/consensus/upgrades.cpp` `EquihashUpgradeInfo`.
+    pub fn equihash_params(&self) -> (u32, u32) {
+        match self {
+            Genesis | BeforeOverwinter | Overwinter | Sapling => (200, 9),
+            Ycash | Blossom | Heartwood | Canopy | Nu5 | Nu6 | Nu6_1 | Nu7 => (192, 7),
+
+            #[cfg(zcash_unstable = "zfuture")]
+            ZFuture => (192, 7),
+        }
+    }
+
     /// Returns the target block spacing for the network upgrade.
     ///
     /// Based on [`PRE_BLOSSOM_POW_TARGET_SPACING`] and

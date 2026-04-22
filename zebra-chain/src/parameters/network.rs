@@ -186,6 +186,17 @@ impl Network {
         }
     }
 
+    /// Returns the Equihash `(N, K)` parameters active at `height` on this network.
+    ///
+    /// Zcash-style Regtest uses `(48, 5)`; all other networks look up the current
+    /// network upgrade and consult its table.
+    pub fn equihash_params(&self, height: block::Height) -> (u32, u32) {
+        if self.is_regtest() {
+            return (48, 5);
+        }
+        NetworkUpgrade::current(self, height).equihash_params()
+    }
+
     /// Returns true if the network is Regtest, or false otherwise.
     pub fn is_regtest(&self) -> bool {
         if let Self::Testnet(params) = self {
