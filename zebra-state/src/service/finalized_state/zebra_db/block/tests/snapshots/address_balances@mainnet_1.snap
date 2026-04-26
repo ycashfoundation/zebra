@@ -1,9 +1,10 @@
 ---
 source: zebra-state/src/service/finalized_state/zebra_db/block/tests/snapshot.rs
+assertion_line: 561
 expression: stored_address_balances
 ---
 [
-  ("t3Vz22vK5z2LcKEdg16Yv4FFneEL1zg9ojd", AddressBalanceLocation(AddressBalanceLocationInner(
+  ("s39yZGB6K2s9ZjPR7TGFhk4niP5yEsdN47P", AddressBalanceLocation(AddressBalanceLocationInner(
     balance: 12500,
     received: 12500,
     location: OutputLocation(

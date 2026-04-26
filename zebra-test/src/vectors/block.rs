@@ -111,7 +111,10 @@ lazy_static! {
             // Ycash mainnet relocates all three upgrades to consecutive heights
             // 1_100_000 / 1_100_003 / 1_100_006 (constants::mainnet::{BLOSSOM,
             // HEARTWOOD, CANOPY}). These five blocks cover the Heartwood-to-Canopy
-            // range needed by the history-tree MMR tests.
+            // range needed by the history-tree MMR tests. Block 1_100_002 is
+            // YHeartwood-1, used as the parent for non-finalized-state Heartwood
+            // activation tests.
+            (1_100_002, BLOCK_MAINNET_1100002_BYTES.as_ref()),
             (1_100_003, BLOCK_MAINNET_1100003_BYTES.as_ref()),
             (1_100_004, BLOCK_MAINNET_1100004_BYTES.as_ref()),
             (1_100_005, BLOCK_MAINNET_1100005_BYTES.as_ref()),
@@ -162,6 +165,7 @@ lazy_static! {
             // UPGRADE_YCASH=570,000 and those blocks are not valid on Ycash.
             //
             // Ycash YBlossom/YHeartwood/YCanopy window (see MAINNET_BLOCKS).
+            (1_100_002, SAPLING_FINAL_ROOT_MAINNET_1100002_BYTES.as_ref().try_into().unwrap()),
             (1_100_003, SAPLING_FINAL_ROOT_MAINNET_1100003_BYTES.as_ref().try_into().unwrap()),
             (1_100_004, SAPLING_FINAL_ROOT_MAINNET_1100004_BYTES.as_ref().try_into().unwrap()),
             (1_100_005, SAPLING_FINAL_ROOT_MAINNET_1100005_BYTES.as_ref().try_into().unwrap()),
@@ -607,13 +611,21 @@ lazy_static! {
     // Ycash mainnet YBlossom/YHeartwood/YCanopy activation window.
     //
     // Ycash relocated Blossom/Heartwood/Canopy to three consecutive blocks
-    // 1_100_000/1_100_003/1_100_006 (see parameters::constants::mainnet). The
-    // five blocks covering Heartwood activation, Canopy-1, and Canopy +/- 1
-    // are the fixtures needed by the history-tree MMR tests.
+    // 1_100_000/1_100_003/1_100_006 (see parameters::constants::mainnet). Block
+    // 1_100_002 is YHeartwood-1 (parent of the activation block); the five
+    // blocks 1_100_003..1_100_007 cover Heartwood activation, Canopy-1, and
+    // Canopy +/- 1. Together they back the history-tree MMR tests and the
+    // non-finalized-state Heartwood-activation tests.
     //
-    // for i in 1100003 1100004 1100005 1100006 1100007; do
+    // for i in 1100002 1100003 1100004 1100005 1100006 1100007; do
     //     ycash-cli getblock $i 0 > block-main-1-100-00$[i-1100000].txt
     // done
+    pub static ref BLOCK_MAINNET_1100002_BYTES: Vec<u8> =
+        <Vec<u8>>::from_hex(include_str!("block-main-1-100-002.txt").trim())
+        .expect("Block bytes are in valid hex representation");
+    pub static ref SAPLING_FINAL_ROOT_MAINNET_1100002_BYTES: [u8; 32] =
+        <[u8; 32]>::from_hex("168bc2dc9bb11793d7ef8f0894852a144bc4b367e16a9ce7d0745e0bd8571f8d")
+        .expect("final root bytes are in valid hex representation").rev();
     pub static ref BLOCK_MAINNET_1100003_BYTES: Vec<u8> =
         <Vec<u8>>::from_hex(include_str!("block-main-1-100-003.txt").trim())
         .expect("Block bytes are in valid hex representation");

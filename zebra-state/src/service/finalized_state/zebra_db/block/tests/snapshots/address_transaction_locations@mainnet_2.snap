@@ -1,9 +1,10 @@
 ---
 source: zebra-state/src/service/finalized_state/zebra_db/block/tests/snapshot.rs
+assertion_line: 565
 expression: stored_address_transaction_locations
 ---
 [
-  ("t3Vz22vK5z2LcKEdg16Yv4FFneEL1zg9ojd", [
+  ("s39yZGB6K2s9ZjPR7TGFhk4niP5yEsdN47P", [
     TransactionLocation(
       height: Height(1),
       index: TransactionIndex(0),

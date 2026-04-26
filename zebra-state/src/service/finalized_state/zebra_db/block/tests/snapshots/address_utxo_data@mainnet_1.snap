@@ -1,9 +1,10 @@
 ---
 source: zebra-state/src/service/finalized_state/zebra_db/block/tests/snapshot.rs
+assertion_line: 564
 expression: stored_address_utxos
 ---
 [
-  ("t3Vz22vK5z2LcKEdg16Yv4FFneEL1zg9ojd", [
+  ("s39yZGB6K2s9ZjPR7TGFhk4niP5yEsdN47P", [
     Output(
       value: 12500,
       lock_script: Script("a9147d46a730d31f97b1930d3368a967c309bd4d136a87"),

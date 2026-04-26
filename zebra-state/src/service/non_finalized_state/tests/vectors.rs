@@ -578,9 +578,10 @@ fn equal_length_goes_to_more_work_for_network(network: Network) -> Result<()> {
 
 #[test]
 fn history_tree_is_updated() -> Result<()> {
-    for network in Network::iter() {
-        history_tree_is_updated_for_network_upgrade(network, NetworkUpgrade::Heartwood)?;
-    }
+    // Mainnet only: Ycash testnet fixtures at YHeartwood-1 (661,621) are not
+    // currently available from any accessible Ycash testnet source. Same
+    // restriction as the m6b-07 history-tree MMR tests in zebra-chain.
+    history_tree_is_updated_for_network_upgrade(Network::Mainnet, NetworkUpgrade::Heartwood)?;
     // TODO: we can't test other upgrades until we have a method for creating a FinalizedState
     // with a HistoryTree.
     Ok(())
@@ -682,9 +683,10 @@ fn history_tree_is_updated_for_network_upgrade(
 
 #[test]
 fn commitment_is_validated() {
-    for network in Network::iter() {
-        commitment_is_validated_for_network_upgrade(network, NetworkUpgrade::Heartwood);
-    }
+    // Mainnet only: Ycash testnet fixtures at YHeartwood-1 (661,621) are not
+    // currently available from any accessible Ycash testnet source. Same
+    // restriction as the m6b-07 history-tree MMR tests in zebra-chain.
+    commitment_is_validated_for_network_upgrade(Network::Mainnet, NetworkUpgrade::Heartwood);
     // TODO: we can't test other upgrades until we have a method for creating a FinalizedState
     // with a HistoryTree.
 }
