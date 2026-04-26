@@ -2761,16 +2761,15 @@ async fn rpc_getdifficulty() {
         internal_miner: true,
     };
 
-    // nu5 block height
-    let fake_tip_height = NetworkUpgrade::Nu5.activation_height(&Mainnet).unwrap();
-    // nu5 block hash
+    // Canopy is Ycash's latest activated network upgrade; NU5+ never activate
+    // on Ycash, so we use Canopy here to get a valid mainnet tip height. The
+    // tip hash and timestamps below are arbitrary mock-feed values — only the
+    // difficulty math is asserted by this test.
+    let fake_tip_height = NetworkUpgrade::Canopy.activation_height(&Mainnet).unwrap();
     let fake_tip_hash =
         Hash::from_hex("0000000000d723156d9b65ffcf4984da7a19675ed7e2f06d9e5d5188af087bf8").unwrap();
-    //  nu5 block time + 1
     let fake_min_time = DateTime32::from(1654008606);
-    // nu5 block time + 12
     let fake_cur_time = DateTime32::from(1654008617);
-    // nu5 block time + 123
     let fake_max_time = DateTime32::from(1654008728);
 
     let (mock_tip, mock_tip_sender) = MockChainTip::new();
@@ -2812,7 +2811,7 @@ async fn rpc_getdifficulty() {
                 cur_time: fake_cur_time,
                 min_time: fake_min_time,
                 max_time: fake_max_time,
-                chain_history_root: fake_history_tree(&Mainnet).hash(),
+                chain_history_root: None,
             }));
     };
 
@@ -2838,7 +2837,7 @@ async fn rpc_getdifficulty() {
                 cur_time: fake_cur_time,
                 min_time: fake_min_time,
                 max_time: fake_max_time,
-                chain_history_root: fake_history_tree(&Mainnet).hash(),
+                chain_history_root: None,
             }));
     };
 
@@ -2861,7 +2860,7 @@ async fn rpc_getdifficulty() {
                 cur_time: fake_cur_time,
                 min_time: fake_min_time,
                 max_time: fake_max_time,
-                chain_history_root: fake_history_tree(&Mainnet).hash(),
+                chain_history_root: None,
             }));
     };
 
@@ -2884,7 +2883,7 @@ async fn rpc_getdifficulty() {
                 cur_time: fake_cur_time,
                 min_time: fake_min_time,
                 max_time: fake_max_time,
-                chain_history_root: fake_history_tree(&Mainnet).hash(),
+                chain_history_root: None,
             }));
     };
 
