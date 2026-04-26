@@ -196,11 +196,15 @@ impl From<NetworkType> for NetworkKind {
     }
 }
 
+// Yolk: produce Ycash-tagged NetworkType variants on Mainnet/Testnet so that
+// addresses round-tripped through ZcashAddress retain Ycash branding. The
+// reverse direction (NetworkType → NetworkKind, above) still collapses Ycash
+// variants onto Mainnet/Testnet because NetworkKind has no Ycash variants.
 impl From<NetworkKind> for NetworkType {
     fn from(network: NetworkKind) -> Self {
         match network {
-            NetworkKind::Mainnet => NetworkType::Main,
-            NetworkKind::Testnet => NetworkType::Test,
+            NetworkKind::Mainnet => NetworkType::YcashMain,
+            NetworkKind::Testnet => NetworkType::YcashTest,
             NetworkKind::Regtest => NetworkType::Regtest,
         }
     }

@@ -7,12 +7,12 @@ use tower::buffer::Buffer;
 
 use zcash_address::{ToAddress, ZcashAddress};
 use zcash_keys::address::Address;
-use zcash_protocol::consensus::NetworkType;
+use zcash_protocol::consensus::Parameters as _;
 use zcash_transparent::address::TransparentAddress;
 
 use zebra_chain::{
     amount::{Amount, NonNegative},
-    block::{Block, Hash, MAX_BLOCK_BYTES, ZCASH_BLOCK_VERSION},
+    block::{Block, ChainHistoryMmrRootHash, Hash, MAX_BLOCK_BYTES, ZCASH_BLOCK_VERSION},
     block_info::BlockInfo,
     chain_sync_status::MockSyncStatus,
     chain_tip::{mock::MockChainTip, NoChainTip},
@@ -20,7 +20,6 @@ use zebra_chain::{
     parameters::{
         testnet::{self, Parameters},
         Network::*,
-        NetworkKind,
     },
     serialization::{DateTime32, ZcashDeserializeInto, ZcashSerialize},
     transaction::{zip317, UnminedTxId, VerifiedUnminedTx},
@@ -39,7 +38,6 @@ use zebra_test::mock_service::MockService;
 
 use crate::methods::{
     hex_data::HexData,
-    tests::utils::fake_history_tree,
     types::get_block_template::{
         constants::{CAPABILITIES_FIELD, MUTABLE_FIELD, NONCE_RANGE_FIELD},
         GetBlockTemplateRequestMode,
@@ -2046,10 +2044,10 @@ async fn getblocktemplate() {
     let net = Network::Mainnet;
 
     // TODO Run the test with all address types supported for mining.
-    let addr = ZcashAddress::from_transparent_p2pkh(
-        NetworkType::from(NetworkKind::from(&net)),
-        [0x7e; 20],
-    );
+    // Use the Parameters trait so the address gets the Ycash network variant
+    // (NetworkType::YcashMain) rather than the bare-NetworkKind conversion's
+    // Zcash variant (NetworkType::Main), which would be rejected downstream.
+    let addr = ZcashAddress::from_transparent_p2pkh(net.network_type(), [0x7e; 20]);
 
     gbt_with(net, addr).await;
 }
@@ -2068,18 +2066,16 @@ async fn gbt_with(net: Network, addr: ZcashAddress) {
         internal_miner: true,
     };
 
-    // nu5 block height
-    let fake_tip_height = NetworkUpgrade::Nu5
+    // Canopy is Ycash's latest activated network upgrade; NU5+ never activate
+    // on Ycash, so we use Canopy here to get a valid mainnet tip height. The
+    // tip hash and timestamps below it are arbitrary mock-feed values.
+    let fake_tip_height = NetworkUpgrade::Canopy
         .activation_height(&net)
-        .expect("nu5 activation height");
-    // nu5 block hash
+        .expect("canopy activation height");
     let fake_tip_hash =
         Hash::from_hex("0000000000d723156d9b65ffcf4984da7a19675ed7e2f06d9e5d5188af087bf8").unwrap();
-    //  nu5 block time + 1
     let fake_min_time = DateTime32::from(1654008606);
-    // nu5 block time + 12
     let fake_cur_time = DateTime32::from(1654008617);
-    // nu5 block time + 123
     let fake_max_time = DateTime32::from(1654008728);
     let fake_difficulty = CompactDifficulty::from(ExpandedDifficulty::from(U256::one()));
 
@@ -2122,7 +2118,7 @@ async fn gbt_with(net: Network, addr: ZcashAddress) {
                     cur_time: fake_cur_time,
                     min_time: fake_min_time,
                     max_time: fake_max_time,
-                    chain_history_root: fake_history_tree(&Mainnet).hash(),
+                    chain_history_root: Some(ChainHistoryMmrRootHash::default()),
                 }));
         }
     };
@@ -2188,7 +2184,7 @@ async fn gbt_with(net: Network, addr: ZcashAddress) {
         get_block_template.bits,
         CompactDifficulty::from_hex("01010000").expect("test vector is valid")
     );
-    assert_eq!(get_block_template.height, 1687105); // nu5 height
+    assert_eq!(get_block_template.height, 1_100_007); // Ycash Canopy activation + 1
     assert_eq!(get_block_template.max_time, fake_max_time);
 
     // Coinbase transaction checks.
