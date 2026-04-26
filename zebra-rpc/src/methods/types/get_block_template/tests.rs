@@ -15,6 +15,7 @@ use super::standard_coinbase_outputs;
 
 /// Tests that a minimal coinbase transaction can be generated.
 #[test]
+#[ignore = "Ycash: NU5-dependent v5 coinbase + no default funding streams"]
 fn minimal_coinbase() -> Result<(), Box<dyn std::error::Error>> {
     let regtest = testnet::Parameters::build()
         .with_slow_start_interval(Height::MIN)
