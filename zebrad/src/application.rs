@@ -159,7 +159,7 @@ pub fn release_version() -> Version {
 /// [BIP 14]: https://github.com/bitcoin/bips/blob/master/bip-0014.mediawiki
 pub fn user_agent() -> String {
     let release_version = release_version();
-    format!("/Zebra:{release_version}/")
+    format!("/Yolk:{release_version}/")
 }
 
 /// Zebrad Application

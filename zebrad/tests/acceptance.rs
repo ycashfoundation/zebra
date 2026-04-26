@@ -1636,9 +1636,9 @@ async fn rpc_endpoint(parallel_cpu_threads: bool) -> Result<()> {
     let build = parsed["result"]["build"].as_str().unwrap();
     assert!(build.len() > 4, "Got {build}");
 
-    // Check that the `subversion` field has "Zebra" in it.
+    // Check that the `subversion` field has "Yolk" in it.
     let subversion = parsed["result"]["subversion"].as_str().unwrap();
-    assert!(subversion.contains("Zebra"), "Got {subversion}");
+    assert!(subversion.contains("Yolk"), "Got {subversion}");
 
     child.kill(false)?;
 
