@@ -12,26 +12,28 @@ use crate::{
 fn parse_config_listen_addr() {
     let _init_guard = zebra_test::init();
 
+    // Ycash mainnet uses port 8833 and testnet uses 18833 (see M2 commit
+    // c87613b7); the mid-fixture explicit ports stay arbitrary.
     let fixtures = vec![
-        ("listen_addr = '0.0.0.0'", "0.0.0.0:8233"),
+        ("listen_addr = '0.0.0.0'", "0.0.0.0:8833"),
         ("listen_addr = '0.0.0.0:9999'", "0.0.0.0:9999"),
         (
             "listen_addr = '0.0.0.0'\nnetwork = 'Testnet'",
-            "0.0.0.0:18233",
+            "0.0.0.0:18833",
         ),
         (
-            "listen_addr = '0.0.0.0:8233'\nnetwork = 'Testnet'",
-            "0.0.0.0:8233",
+            "listen_addr = '0.0.0.0:8833'\nnetwork = 'Testnet'",
+            "0.0.0.0:8833",
         ),
-        ("listen_addr = '[::]'", "[::]:8233"),
+        ("listen_addr = '[::]'", "[::]:8833"),
         ("listen_addr = '[::]:9999'", "[::]:9999"),
-        ("listen_addr = '[::]'\nnetwork = 'Testnet'", "[::]:18233"),
+        ("listen_addr = '[::]'\nnetwork = 'Testnet'", "[::]:18833"),
         (
-            "listen_addr = '[::]:8233'\nnetwork = 'Testnet'",
-            "[::]:8233",
+            "listen_addr = '[::]:8833'\nnetwork = 'Testnet'",
+            "[::]:8833",
         ),
-        ("listen_addr = '[::1]:8233'", "[::1]:8233"),
-        ("listen_addr = '[2001:db8::1]:8233'", "[2001:db8::1]:8233"),
+        ("listen_addr = '[::1]:8833'", "[::1]:8833"),
+        ("listen_addr = '[2001:db8::1]:8833'", "[2001:db8::1]:8833"),
     ];
 
     for (config, value) in fixtures {
@@ -81,7 +83,8 @@ fn default_config_uses_ipv6() {
     let _init_guard = zebra_test::init();
     let config = Config::default();
 
-    assert_eq!(config.listen_addr.to_string(), "[::]:8233");
+    // Ycash mainnet default port is 8833 (see M2 commit c87613b7).
+    assert_eq!(config.listen_addr.to_string(), "[::]:8833");
     assert!(config.listen_addr.is_ipv6());
 }
 

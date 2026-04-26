@@ -230,7 +230,10 @@ mod test {
 
         let highest_network_upgrade = NetworkUpgrade::current(network, block::Height::MAX);
         assert!(
-            matches!(highest_network_upgrade, Nu6 | Nu6_1 | Nu7),
+            // Ycash never activates NU5+ (NU5/NU6/NU6.1/NU7 all have
+            // NO_ACTIVATION_HEIGHT in parameters::constants), so the highest
+            // active upgrade at Height::MAX is Canopy.
+            matches!(highest_network_upgrade, Canopy),
             "expected coverage of all network upgrades: \
             add the new network upgrade to the list in this test"
         );

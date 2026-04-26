@@ -67,6 +67,9 @@ fn all_upgrades_and_wrong_commitments_with_fake_activation_heights() -> Result<(
             before_overwinter: Some(1),
             overwinter: Some(10),
             sapling: Some(15),
+            // Ycash chain-fork upgrade does not affect the post-Heartwood
+            // commitment-shape validation this test exercises.
+            ycash: None,
             blossom: Some(20),
             heartwood: Some(25),
             canopy: Some(30),

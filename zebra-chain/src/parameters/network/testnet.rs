@@ -178,6 +178,7 @@ impl From<&BTreeMap<Height, NetworkUpgrade>> for ConfiguredActivationHeights {
                 }
                 NetworkUpgrade::Overwinter => &mut configured_activation_heights.overwinter,
                 NetworkUpgrade::Sapling => &mut configured_activation_heights.sapling,
+                NetworkUpgrade::Ycash => &mut configured_activation_heights.ycash,
                 NetworkUpgrade::Blossom => &mut configured_activation_heights.blossom,
                 NetworkUpgrade::Heartwood => &mut configured_activation_heights.heartwood,
                 NetworkUpgrade::Canopy => &mut configured_activation_heights.canopy,
@@ -187,7 +188,7 @@ impl From<&BTreeMap<Height, NetworkUpgrade>> for ConfiguredActivationHeights {
                 NetworkUpgrade::Nu7 => &mut configured_activation_heights.nu7,
                 #[cfg(zcash_unstable = "zfuture")]
                 NetworkUpgrade::ZFuture => &mut configured_activation_heights.zfuture,
-                NetworkUpgrade::Genesis | NetworkUpgrade::Ycash => continue,
+                NetworkUpgrade::Genesis => continue,
             };
 
             *field = Some(height.0)
@@ -342,6 +343,12 @@ pub struct ConfiguredActivationHeights {
     pub overwinter: Option<u32>,
     /// Activation height for `Sapling` network upgrade.
     pub sapling: Option<u32>,
+    /// Activation height for the `Ycash` chain-fork network upgrade.
+    ///
+    /// Active only on Ycash networks. Sits between `Sapling` and `Blossom`
+    /// on the height axis on default Ycash testnet (510248) and mainnet
+    /// (570000). Custom testnets that want Ycash semantics must set this.
+    pub ycash: Option<u32>,
     /// Activation height for `Blossom` network upgrade.
     pub blossom: Option<u32>,
     /// Activation height for `Heartwood` network upgrade.
@@ -374,6 +381,10 @@ impl ConfiguredActivationHeights {
             before_overwinter,
             overwinter,
             sapling,
+            // Regtest never activates the Ycash chain-fork upgrade; preserve
+            // whatever the caller passed (typically None) without folding it
+            // into the chain.
+            ycash,
             blossom,
             heartwood,
             canopy,
@@ -395,6 +406,7 @@ impl ConfiguredActivationHeights {
             before_overwinter,
             overwinter,
             sapling,
+            ycash,
             blossom,
             heartwood,
             canopy,
@@ -582,6 +594,7 @@ impl ParametersBuilder {
             before_overwinter,
             overwinter,
             sapling,
+            ycash,
             blossom,
             heartwood,
             canopy,
@@ -609,6 +622,7 @@ impl ParametersBuilder {
                 .map(|h| (h, BeforeOverwinter))
                 .chain(overwinter.into_iter().map(|h| (h, Overwinter)))
                 .chain(sapling.into_iter().map(|h| (h, Sapling)))
+                .chain(ycash.into_iter().map(|h| (h, Ycash)))
                 .chain(blossom.into_iter().map(|h| (h, Blossom)))
                 .chain(heartwood.into_iter().map(|h| (h, Heartwood)))
                 .chain(canopy.into_iter().map(|h| (h, Canopy)))
