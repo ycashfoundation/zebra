@@ -109,6 +109,14 @@ cargo nextest run --profile sync-large-checkpoints-empty
 - Use `.github/pull_request_template.md` and include: motivation, solution summary, test evidence, issue link (`Closes #...`), and AI disclosure.
 - For user-visible changes, update `CHANGELOG.md` per `CHANGELOG_GUIDELINES.md`.
 
+### Yolk Fork Override
+
+The guidelines above are inherited from upstream Zebra and target contributions to `ZcashFoundation/zebra`. **When committing to the yolk fork** (origin = `ycashfoundation/zebra`), the following overrides apply:
+
+- **Co-Authored-By trailers: ON.** Append the standard Claude Code `Co-Authored-By: Claude <noreply@anthropic.com>` trailer (or the model-versioned form your session emits, e.g. `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`) to AI-assisted commits, so GitHub renders proper "hloo & Claude" attribution on the yolk fork.
+
+This override applies only to commits that will land on the yolk fork. Upstream Zebra contributions still follow the unmodified rules above.
+
 ## Project Overview
 
 Zebra is a Zcash full node implementation in Rust. It is a validator node — it excludes features not strictly needed for block validation and chain sync.
